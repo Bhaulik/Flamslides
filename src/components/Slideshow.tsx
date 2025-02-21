@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Slide } from "@/types/slide";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,17 @@ export const Slideshow = ({
 }: SlideshowProps) => {
   const [currentIndex, setCurrentIndex] = useState(currentSlide || 0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     if (currentSlide !== undefined && currentSlide !== currentIndex) {
@@ -63,12 +74,27 @@ export const Slideshow = ({
     setIsPlaying(!isPlaying);
   };
 
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      containerRef.current?.requestFullscreen();
+    }
+  };
+
   return (
-    <div className={cn(
-      "relative w-full max-w-4xl mx-auto aspect-[16/9] bg-white rounded-lg shadow-lg overflow-hidden",
-      className
-    )}>
-      <div className="absolute inset-0 p-8 flex flex-col justify-center">
+    <div 
+      ref={containerRef}
+      className={cn(
+        "relative w-full max-w-4xl mx-auto aspect-[16/9] bg-white rounded-lg shadow-lg overflow-hidden",
+        isFullscreen && "fixed inset-0 w-screen h-screen max-w-none m-0 rounded-none",
+        className
+      )}
+    >
+      <div className={cn(
+        "absolute inset-0 p-8 flex flex-col justify-center",
+        isFullscreen && "max-w-7xl mx-auto"
+      )}>
         {slides.map((slide, index) => (
           <div
             key={index}
@@ -82,13 +108,25 @@ export const Slideshow = ({
                 <img
                   src={slide.imageUrl}
                   alt=""
-                  className="w-full h-full object-cover opacity-10"
+                  className={cn(
+                    "w-full h-full object-cover opacity-10",
+                    isFullscreen && "object-contain"
+                  )}
                 />
               </div>
             )}
-            <div className="relative z-10 max-w-2xl mx-auto text-center">
-              <h2 className="text-4xl font-bold mb-4 tracking-tight">{slide.title}</h2>
-              <p className="text-lg text-gray-700 leading-relaxed">{slide.body}</p>
+            <div className={cn(
+              "relative z-10 max-w-2xl mx-auto text-center",
+              isFullscreen && "max-w-4xl"
+            )}>
+              <h2 className={cn(
+                "text-4xl font-bold mb-4 tracking-tight",
+                isFullscreen && "text-6xl"
+              )}>{slide.title}</h2>
+              <p className={cn(
+                "text-lg text-gray-700 leading-relaxed",
+                isFullscreen && "text-2xl"
+              )}>{slide.body}</p>
             </div>
           </div>
         ))}

@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Slideshow } from "@/components/Slideshow";
 import { ChatArea } from "@/components/ChatArea";
 import type { Slide } from "@/types/slide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Flame, Loader2 } from "lucide-react";
+import { Flame, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import OpenAI from "openai";
+import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSlidesContext } from "@/App";
 
 const sampleSlides: Slide[] = [
   {
@@ -34,18 +37,32 @@ const steps = [
 ];
 
 const Index = () => {
-  const [slides, setSlides] = useState<Slide[]>(sampleSlides);
+  const { slides, setSlides } = useSlidesContext();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [formData, setFormData] = useState({
-    topic: "",
-    description: "",
-    numberOfSlides: "3",
-    duration: "5"
-  });
+  const [title, setTitle] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSteps, setShowSteps] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { toast } = useToast();
+  const slideshowRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (slides.length === 0) {
+      setSlides(sampleSlides);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +99,7 @@ const Index = () => {
           },
           {
             role: "user",
-            content: `Create a ${formData.numberOfSlides}-slide presentation about ${formData.topic}. Here's more context: ${formData.description}`
+            content: `Create a 3-slide presentation about ${title}. Here's more context: ${prompt}`
           }
         ],
         temperature: 0.7,
@@ -92,7 +109,7 @@ const Index = () => {
         setLoadingMessage("Processing and formatting slides...");
         const content = completion.choices[0].message.content;
         
-        const slides = content.split('\n\n')
+        const newSlides = content.split('\n\n')
           .filter((slide: string) => slide.trim() && slide.includes('Title:') && slide.includes('Body:'))
           .map((slide: string, index: number) => {
             const parts = slide.split('Body:');
@@ -103,8 +120,8 @@ const Index = () => {
             };
           });
 
-        if (slides.length > 0) {
-          setSlides(slides);
+        if (newSlides.length > 0) {
+          setSlides(newSlides);
           toast({
             title: "Slides Generated",
             description: "Your presentation has been created successfully using ChatGPT.",
@@ -130,16 +147,37 @@ const Index = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'title') {
+      setTitle(value);
+    } else if (name === 'prompt') {
+      setPrompt(value);
+    }
   };
 
   const handleSlideUpdate = (index: number, updatedSlide: Slide) => {
     const newSlides = [...slides];
     newSlides[index] = updatedSlide;
     setSlides(newSlides);
+  };
+
+  const handlePresent = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        const slideshow = slideshowRef.current;
+        if (slideshow) {
+          await slideshow.requestFullscreen();
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling fullscreen:', error);
+      toast({
+        title: "Error",
+        description: "Failed to toggle fullscreen mode. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -160,13 +198,13 @@ const Index = () => {
         <h2 className="text-2xl font-bold mb-4 text-center">Generate Slideshow</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="topic" className="block text-sm font-medium mb-1">
+            <label htmlFor="title" className="block text-sm font-medium mb-1">
               Topic/Title
             </label>
             <Input
-              id="topic"
-              name="topic"
-              value={formData.topic}
+              id="title"
+              name="title"
+              value={title}
               onChange={handleInputChange}
               placeholder="Enter the main topic"
               required
@@ -174,52 +212,18 @@ const Index = () => {
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-1">
+            <label htmlFor="prompt" className="block text-sm font-medium mb-1">
               Description
             </label>
             <Textarea
-              id="description"
-              name="description"
-              value={formData.description}
+              id="prompt"
+              name="prompt"
+              value={prompt}
               onChange={handleInputChange}
               placeholder="Describe what you want in your slides"
               required
               className="min-h-[100px]"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="numberOfSlides" className="block text-sm font-medium mb-1">
-                Number of Slides
-              </label>
-              <Input
-                id="numberOfSlides"
-                name="numberOfSlides"
-                type="number"
-                min="1"
-                max="10"
-                value={formData.numberOfSlides}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="duration" className="block text-sm font-medium mb-1">
-                Duration (minutes)
-              </label>
-              <Input
-                id="duration"
-                name="duration"
-                type="number"
-                min="1"
-                max="30"
-                value={formData.duration}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
           </div>
 
           <Button 
@@ -265,12 +269,26 @@ const Index = () => {
       )}
 
       {/* Slideshow and Chat Area */}
-      <div className="w-full max-w-7xl mx-auto">
-        <Slideshow 
-          slides={slides} 
-          currentSlide={currentSlide}
-          onSlideChange={setCurrentSlide}
-        />
+      <div className="w-full max-w-7xl mx-auto space-y-4">
+        <div ref={slideshowRef}>
+          <Slideshow 
+            slides={slides} 
+            currentSlide={currentSlide}
+            onSlideChange={setCurrentSlide}
+          />
+        </div>
+
+        <div className="max-w-2xl mx-auto">
+          <Button
+            onClick={() => navigate(`/present?slide=${currentSlide}`)}
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+            size="lg"
+          >
+            <Maximize2 className="mr-2 h-5 w-5" />
+            Present
+          </Button>
+        </div>
+
         <ChatArea 
           slides={slides} 
           onSlideUpdate={handleSlideUpdate} 

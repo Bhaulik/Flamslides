@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { MessageSquare } from "lucide-react";
@@ -17,7 +17,7 @@ export const ChatArea = ({
   slides, 
   onSlideUpdate, 
   selectedSlide, 
-  onSlideSelect 
+  onSlideSelect
 }: ChatAreaProps) => {
   const [message, setMessage] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
