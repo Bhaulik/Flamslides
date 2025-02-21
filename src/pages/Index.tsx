@@ -21,19 +21,29 @@ import {
 
 const sampleSlides: Slide[] = [
   {
-    title: "Innovation Through Design",
-    body: "Creating experiences that seamlessly blend form and function, bringing ideas to life through thoughtful design and attention to detail.",
+    title: "Welcome to FlamSlides",
+    body: "Create stunning AI-powered presentations in minutes. Transform your ideas into professional, engaging slideshows with just a few clicks.",
+    imageUrl: "https://images.unsplash.com/photo-1516383740770-fbcc5ccbece0"
+  },
+  {
+    title: "AI-Powered Content Generation",
+    body: "Let our advanced AI create well-structured, coherent presentations. From professional reports to academic lectures, FlamSlides adapts to your style and needs.",
     imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
   },
   {
-    title: "Building Tomorrow",
-    body: "Empowering teams to create groundbreaking solutions that push the boundaries of what's possible in technology.",
-    imageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c"
+    title: "Smart Customization",
+    body: "Fine-tune your presentations with our interactive chat interface. Adjust content, style, and themes in real-time while maintaining professional consistency.",
+    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978"
   },
   {
-    title: "Crafted with Precision",
-    body: "Every pixel, every interaction, and every line of code is carefully considered to deliver an exceptional user experience.",
-    imageUrl: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7"
+    title: "Beautiful Themes & Layouts",
+    body: "Every presentation comes with carefully crafted themes and responsive layouts. Enjoy automatic image selection and consistent visual styling.",
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
+  },
+  {
+    title: "Present with Confidence",
+    body: "Get AI-generated presenter notes, smart slide transitions, and optimized content flow. Focus on delivery while FlamSlides handles the structure.",
+    imageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0"
   }
 ];
 
