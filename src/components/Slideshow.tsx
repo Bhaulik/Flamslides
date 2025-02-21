@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 interface SlideshowProps {
   slides: Slide[];
-  autoPlayInterval?: number;
+  autoPlayInterval?: number | null;
   className?: string;
   currentSlide?: number;
   onSlideChange?: (index: number) => void;
@@ -14,13 +14,13 @@ interface SlideshowProps {
 
 export const Slideshow = ({
   slides,
-  autoPlayInterval = 5000,
+  autoPlayInterval = null,
   className,
   currentSlide,
   onSlideChange,
 }: SlideshowProps) => {
   const [currentIndex, setCurrentIndex] = useState(currentSlide || 0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     if (currentSlide !== undefined && currentSlide !== currentIndex) {
@@ -29,7 +29,7 @@ export const Slideshow = ({
   }, [currentSlide]);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !autoPlayInterval) return;
 
     const interval = setInterval(() => {
       const nextIndex = (currentIndex + 1) % slides.length;

@@ -498,6 +498,164 @@ Return the presentation in JSON format as specified.`
 
       {/* Slideshow and Chat Area */}
       <div className="w-full max-w-7xl mx-auto">
+        {/* Slide Content Editor */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Edit Current Slide</h3>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (currentSlide > 0) {
+                    setCurrentSlide(currentSlide - 1);
+                  }
+                }}
+                disabled={currentSlide === 0}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-gray-500">
+                Slide {currentSlide + 1} of {slides.length}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (currentSlide < slides.length - 1) {
+                    setCurrentSlide(currentSlide + 1);
+                  }
+                }}
+                disabled={currentSlide === slides.length - 1}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="slideTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                Title
+              </label>
+              <Input
+                id="slideTitle"
+                value={slides[currentSlide].title}
+                onChange={(e) => {
+                  const newSlides = [...slides];
+                  newSlides[currentSlide] = {
+                    ...newSlides[currentSlide],
+                    title: e.target.value
+                  };
+                  setSlides(newSlides);
+                }}
+                className="w-full"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="slideBody" className="block text-sm font-medium text-gray-700 mb-1">
+                Content
+              </label>
+              <Textarea
+                id="slideBody"
+                value={slides[currentSlide].body}
+                onChange={(e) => {
+                  const newSlides = [...slides];
+                  newSlides[currentSlide] = {
+                    ...newSlides[currentSlide],
+                    body: e.target.value
+                  };
+                  setSlides(newSlides);
+                }}
+                className="w-full min-h-[100px]"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="slideNotes" className="block text-sm font-medium text-gray-700 mb-1">
+                Presenter Notes (Optional)
+              </label>
+              <Textarea
+                id="slideNotes"
+                value={slides[currentSlide].notes || ""}
+                onChange={(e) => {
+                  const newSlides = [...slides];
+                  newSlides[currentSlide] = {
+                    ...newSlides[currentSlide],
+                    notes: e.target.value
+                  };
+                  setSlides(newSlides);
+                }}
+                className="w-full min-h-[80px]"
+                placeholder="Add notes for the presenter..."
+              />
+            </div>
+
+            <div>
+              <label htmlFor="imageDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                Image Description
+              </label>
+              <div className="flex gap-2">
+                <Textarea
+                  id="imageDescription"
+                  value={slides[currentSlide].ai_image_description || ""}
+                  onChange={(e) => {
+                    const newSlides = [...slides];
+                    newSlides[currentSlide] = {
+                      ...newSlides[currentSlide],
+                      ai_image_description: e.target.value
+                    };
+                    setSlides(newSlides);
+                  }}
+                  className="flex-1 min-h-[80px]"
+                  placeholder="Describe the image you want to generate..."
+                />
+                <Button
+                  className="self-start"
+                  onClick={async () => {
+                    if (!slides[currentSlide].ai_image_description) return;
+                    
+                    try {
+                      setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
+                      setIsGenerating(true);
+                      const newImageUrl = await generateImage(slides[currentSlide].ai_image_description);
+                      
+                      const newSlides = [...slides];
+                      newSlides[currentSlide] = {
+                        ...newSlides[currentSlide],
+                        imageUrl: newImageUrl
+                      };
+                      setSlides(newSlides);
+                      
+                      toast({
+                        title: "Image Generated",
+                        description: "New image has been generated for the slide.",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to generate new image. Please try again.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsGenerating(false);
+                      setLoadingMessage("");
+                    }
+                  }}
+                  disabled={!slides[currentSlide].ai_image_description || isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Regenerate Image"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <Slideshow 
           slides={slides} 
           currentSlide={currentSlide}
