@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Slide } from "@/types/slide";
 import { cn } from "@/lib/utils";
@@ -9,40 +8,55 @@ interface SlideshowProps {
   slides: Slide[];
   autoPlayInterval?: number;
   className?: string;
+  currentSlide?: number;
+  onSlideChange?: (index: number) => void;
 }
 
 export const Slideshow = ({
   slides,
   autoPlayInterval = 5000,
   className,
+  currentSlide,
+  onSlideChange,
 }: SlideshowProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(currentSlide || 0);
   const [isPlaying, setIsPlaying] = useState(true);
+
+  useEffect(() => {
+    if (currentSlide !== undefined && currentSlide !== currentIndex) {
+      setCurrentIndex(currentSlide);
+    }
+  }, [currentSlide]);
 
   useEffect(() => {
     if (!isPlaying) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((current) => (current + 1) % slides.length);
+      const nextIndex = (currentIndex + 1) % slides.length;
+      setCurrentIndex(nextIndex);
+      onSlideChange?.(nextIndex);
     }, autoPlayInterval);
 
     return () => clearInterval(interval);
-  }, [isPlaying, slides.length, autoPlayInterval]);
+  }, [isPlaying, slides.length, autoPlayInterval, currentIndex, onSlideChange]);
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
+    onSlideChange?.(index);
   };
 
   const previousSlide = () => {
     setCurrentIndex((current) => 
       current === 0 ? slides.length - 1 : current - 1
     );
+    onSlideChange?.((currentIndex - 1 + slides.length) % slides.length);
   };
 
   const nextSlide = () => {
     setCurrentIndex((current) => 
       (current + 1) % slides.length
     );
+    onSlideChange?.((currentIndex + 1) % slides.length);
   };
 
   const togglePlayPause = () => {

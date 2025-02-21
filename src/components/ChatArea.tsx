@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -10,17 +9,23 @@ import OpenAI from "openai";
 interface ChatAreaProps {
   slides: Slide[];
   onSlideUpdate: (index: number, updatedSlide: Slide) => void;
+  selectedSlide: number;
+  onSlideSelect: (index: number) => void;
 }
 
-export const ChatArea = ({ slides, onSlideUpdate }: ChatAreaProps) => {
+export const ChatArea = ({ 
+  slides, 
+  onSlideUpdate, 
+  selectedSlide, 
+  onSlideSelect 
+}: ChatAreaProps) => {
   const [message, setMessage] = useState("");
-  const [selectedSlide, setSelectedSlide] = useState<number | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedSlide === null || !message.trim()) return;
+    if (!message.trim()) return;
 
     setIsUpdating(true);
     try {
@@ -83,7 +88,7 @@ export const ChatArea = ({ slides, onSlideUpdate }: ChatAreaProps) => {
           {slides.map((_, index) => (
             <button
               key={index}
-              onClick={() => setSelectedSlide(index)}
+              onClick={() => onSlideSelect(index)}
               className={`px-3 py-1 rounded ${
                 selectedSlide === index
                   ? "bg-primary text-white"
@@ -101,12 +106,12 @@ export const ChatArea = ({ slides, onSlideUpdate }: ChatAreaProps) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Describe how you want to update the selected slide..."
-          disabled={selectedSlide === null || isUpdating}
+          disabled={isUpdating}
           className="flex-1"
         />
         <Button 
           type="submit" 
-          disabled={selectedSlide === null || isUpdating || !message.trim()}
+          disabled={isUpdating || !message.trim()}
         >
           <MessageSquare className="mr-2" />
           {isUpdating ? "Updating..." : "Update Slide"}
