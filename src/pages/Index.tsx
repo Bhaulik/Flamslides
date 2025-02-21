@@ -8,6 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Flame, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import {
+  PresentationRequest,
+  PresentationSchema,
+  PresentationRequestType,
+  Presentation,
+  openAIResponseSchema
+} from "@/types/slide";
 
 const sampleSlides: Slide[] = [
   {
@@ -33,14 +43,31 @@ const steps = [
   { number: 3, title: "Refine Content", description: "Use the chat interface to perfect each slide" }
 ];
 
+const systemPrompt = `You are a presentation expert that creates engaging and informative slides.
+Follow these guidelines:
+- Create clear, concise titles that capture attention
+- Each slide should have a coherent message
+- Use professional language appropriate for the context
+- Include optional presenter notes for guidance
+- Maintain consistent theming throughout
+- Structure content logically with a clear flow
+
+The presentation should follow this structure:
+- Title slide introducing the topic
+- Content slides developing key points
+- Summary or conclusion slide
+
+For theme colors, use hex color codes (e.g., #2563eb for blue).`;
+
 const Index = () => {
   const [slides, setSlides] = useState<Slide[]>(sampleSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PresentationRequestType>({
     topic: "",
     description: "",
-    numberOfSlides: "3",
-    duration: "5"
+    numberOfSlides: 3,
+    duration: 5,
+    style: "professional"
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSteps, setShowSteps] = useState(true);
@@ -49,6 +76,7 @@ const Index = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    logger.info("Starting slide generation", { formData });
     setIsGenerating(true);
     setShowSteps(false);
     setLoadingMessage("Initializing slide generation...");
@@ -56,6 +84,7 @@ const Index = () => {
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
     if (!apiKey) {
+      logger.error("API key missing");
       toast({
         title: "Configuration Error",
         description: "OpenAI API key is not configured. Please check your environment variables.",
@@ -71,69 +100,146 @@ const Index = () => {
     });
 
     try {
-      setLoadingMessage("Creating engaging presentation content with ChatGPT...");
+      logger.info("Validating input data");
+      const validatedInput = PresentationRequest.parse(formData);
+      logger.debug("Input validation successful", { validatedInput });
       
+      setLoadingMessage("Creating engaging presentation content with ChatGPT...");
+      logger.info("Sending request to OpenAI");
+
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
-            content: "You are a presentation expert that creates engaging and informative slides. Format your response as a list of slides, each with 'Title:' and 'Body:' sections."
+            content: `${systemPrompt}
+Please provide the response in the following JSON format:
+{
+  "title": "string",
+  "slides": [
+    {
+      "title": "string",
+      "body": "string",
+      "notes": "string (optional)",
+      "imageUrl": "string (optional)"
+    }
+  ],
+  "theme": {
+    "primary": "#hex",
+    "secondary": "#hex",
+    "background": "#hex"
+  }
+}`
           },
           {
             role: "user",
-            content: `Create a ${formData.numberOfSlides}-slide presentation about ${formData.topic}. Here's more context: ${formData.description}`
+            content: `Create a presentation about ${validatedInput.topic}. 
+Include ${validatedInput.numberOfSlides} slides.
+Style: ${validatedInput.style}
+Additional context: ${validatedInput.description}
+Duration: ${validatedInput.duration} minutes
+
+Return the presentation in JSON format as specified.`
           }
         ],
+        response_format: { type: "json_object" },
         temperature: 0.7,
       });
 
-      if (completion.choices[0]?.message?.content) {
-        setLoadingMessage("Processing and formatting slides...");
-        const content = completion.choices[0].message.content;
-        
-        const slides = content.split('\n\n')
-          .filter((slide: string) => slide.trim() && slide.includes('Title:') && slide.includes('Body:'))
-          .map((slide: string, index: number) => {
-            const parts = slide.split('Body:');
-            return {
-              title: parts[0].replace('Title:', '').trim(),
-              body: parts[1].trim(),
-              imageUrl: sampleSlides[index % sampleSlides.length].imageUrl
-            };
-          });
-
-        if (slides.length > 0) {
-          setSlides(slides);
-          toast({
-            title: "Slides Generated",
-            description: "Your presentation has been created successfully using ChatGPT.",
-          });
-        } else {
-          throw new Error('Invalid slide format received');
-        }
+      logger.info("Received response from OpenAI");
+      
+      if (!completion.choices[0]?.message?.content) {
+        throw new Error("No content received from OpenAI");
       }
-    } catch (error) {
-      console.error('Error generating slides:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate slides. Please try again.",
-        variant: "destructive",
+
+      const rawResponse = JSON.parse(completion.choices[0].message.content);
+      logger.debug("Parsed JSON response", { rawResponse });
+
+      // Validate with Zod schema
+      const presentation = PresentationSchema.parse(rawResponse);
+      logger.info("Successfully validated presentation", {
+        slideCount: presentation.slides.length,
+        hasTheme: !!presentation.theme
       });
+
+      setLoadingMessage("Processing and formatting slides...");
+      
+      // Update slides with the generated content
+      const processedSlides = presentation.slides.map((slide, index) => ({
+        ...slide,
+        imageUrl: slide.imageUrl || sampleSlides[index % sampleSlides.length].imageUrl
+      }));
+
+      logger.info("Slides processed successfully", { 
+        processedCount: processedSlides.length,
+        hasImages: processedSlides.every(slide => !!slide.imageUrl)
+      });
+
+      setSlides(processedSlides);
+      toast({
+        title: "Slides Generated",
+        description: `Created ${processedSlides.length} slides successfully.`,
+      });
+
+    } catch (error) {
+      logger.error("Error in slide generation", { error });
+      
+      if (error instanceof z.ZodError) {
+        logger.error("Validation error", { 
+          issues: error.issues 
+        });
+        toast({
+          title: "Invalid Input",
+          description: "Please check your input values and try again.",
+          variant: "destructive",
+        });
+      } else {
+        console.error('Error generating slides:', error);
+        toast({
+          title: "Error",
+          description: "Failed to generate slides. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGenerating(false);
       setLoadingMessage("");
+      logger.info("Slide generation process completed");
     }
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+    logger.debug("Form input changed", { field: name, value });
+    
+    setFormData((prev) => {
+      // Handle numeric fields
+      if (name === "numberOfSlides" || name === "duration") {
+        const numValue = parseInt(value);
+        // Only update if it's a valid number and within bounds
+        if (!isNaN(numValue)) {
+          if (name === "numberOfSlides" && (numValue < 1 || numValue > 10)) {
+            return prev;
+          }
+          if (name === "duration" && (numValue < 1 || numValue > 30)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [name]: numValue
+          };
+        }
+        return prev;
+      }
+      
+      // Handle text fields and select
+      return {
+        ...prev,
+        [name]: value
+      };
+    });
   };
 
   const handleSlideUpdate = (index: number, updatedSlide: Slide) => {
@@ -191,14 +297,14 @@ const Index = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="numberOfSlides" className="block text-sm font-medium mb-1">
-                Number of Slides
+                Number of Slides (1-10)
               </label>
               <Input
                 id="numberOfSlides"
                 name="numberOfSlides"
                 type="number"
-                min="1"
-                max="10"
+                min={1}
+                max={10}
                 value={formData.numberOfSlides}
                 onChange={handleInputChange}
                 required
@@ -207,14 +313,14 @@ const Index = () => {
 
             <div>
               <label htmlFor="duration" className="block text-sm font-medium mb-1">
-                Duration (minutes)
+                Duration (1-30 min)
               </label>
               <Input
                 id="duration"
                 name="duration"
                 type="number"
-                min="1"
-                max="30"
+                min={1}
+                max={30}
                 value={formData.duration}
                 onChange={handleInputChange}
                 required
@@ -222,12 +328,37 @@ const Index = () => {
             </div>
           </div>
 
+          <div>
+            <label htmlFor="style" className="block text-sm font-medium mb-1">
+              Presentation Style
+            </label>
+            <select
+              id="style"
+              name="style"
+              value={formData.style}
+              onChange={handleInputChange}
+              className="w-full rounded-md border border-gray-300 px-3 py-2"
+              required
+            >
+              <option value="professional">Professional</option>
+              <option value="casual">Casual</option>
+              <option value="academic">Academic</option>
+            </select>
+          </div>
+
           <Button 
             type="submit" 
             className="w-full"
             disabled={isGenerating}
           >
-            {isGenerating ? "Generating..." : "Generate Slideshow"}
+            {isGenerating ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Generating...</span>
+              </div>
+            ) : (
+              "Generate Slideshow"
+            )}
           </Button>
         </form>
       </div>
