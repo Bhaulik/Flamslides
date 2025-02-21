@@ -5,7 +5,8 @@ export const SlideContent = z.object({
   title: z.string().min(1, "Title is required"),
   body: z.string().min(1, "Content is required"),
   notes: z.string().optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  ai_image_description: z.string().optional()
 });
 
 // Theme schema
@@ -52,7 +53,8 @@ export const openAIResponseSchema = {
             title: { type: "string" },
             body: { type: "string" },
             notes: { type: "string" },
-            imageUrl: { type: "string" }
+            imageUrl: { type: "string" },
+            ai_image_description: { type: "string" }
           },
           required: ["title", "body"]
         }

@@ -23,27 +23,32 @@ const sampleSlides: Slide[] = [
   {
     title: "Welcome to FlamSlides",
     body: "Create stunning AI-powered presentations in minutes. Transform your ideas into professional, engaging slideshows with just a few clicks.",
-    imageUrl: "https://images.unsplash.com/photo-1516383740770-fbcc5ccbece0"
+    imageUrl: "https://images.unsplash.com/photo-1516383740770-fbcc5ccbece0",
+    ai_image_description: "A modern, minimalist presentation screen with elegant flame logo, professional lighting, warm colors"
   },
   {
     title: "AI-Powered Content Generation",
     body: "Let our advanced AI create well-structured, coherent presentations. From professional reports to academic lectures, FlamSlides adapts to your style and needs.",
-    imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b"
+    imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
+    ai_image_description: "Futuristic AI visualization, neural networks, glowing connections, professional tech aesthetic"
   },
   {
     title: "Smart Customization",
     body: "Fine-tune your presentations with our interactive chat interface. Adjust content, style, and themes in real-time while maintaining professional consistency.",
-    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978"
+    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978",
+    ai_image_description: "Interactive design interface, modern UI elements, warm professional color scheme"
   },
   {
     title: "Beautiful Themes & Layouts",
     body: "Every presentation comes with carefully crafted themes and responsive layouts. Enjoy automatic image selection and consistent visual styling.",
-    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
+    ai_image_description: "Elegant presentation layout with modern design elements, professional color palette, subtle patterns"
   },
   {
     title: "Present with Confidence",
     body: "Get AI-generated presenter notes, smart slide transitions, and optimized content flow. Focus on delivery while FlamSlides handles the structure.",
-    imageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0"
+    imageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0",
+    ai_image_description: "Professional presenter on stage with modern presentation display, confident pose, warm lighting"
   }
 ];
 
@@ -68,6 +73,66 @@ The presentation should follow this structure:
 - Summary or conclusion slide
 
 For theme colors, use hex color codes (e.g., #2563eb for blue).`;
+
+const generateImage = async (prompt: string): Promise<string> => {
+  try {
+    logger.info("Starting DALL-E image generation", { prompt });
+
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OpenAI API key is missing");
+    }
+
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: `Professional presentation visual: ${prompt}. Style: Modern, minimalist, professional. The image should be clean, elegant, and suitable for a professional presentation.`,
+        n: 1,
+        size: "1792x1024",
+        quality: "standard",
+        style: "natural"
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      logger.error("DALL-E image generation failed", {
+        status: response.status,
+        error: error
+      });
+      throw new Error(error.error?.message || error.error || 'Failed to generate image');
+    }
+
+    const data = await response.json();
+    logger.debug("DALL-E image generated successfully", { data });
+
+    if (!data.data?.[0]?.url) {
+      throw new Error("No image URL in DALL-E response");
+    }
+
+    return data.data[0].url;
+  } catch (error) {
+    logger.error("Image generation failed", { error });
+    
+    // Return a fallback image URL from Unsplash based on the prompt theme
+    const fallbackImages = [
+      "https://images.unsplash.com/photo-1516383740770-fbcc5ccbece0",
+      "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
+      "https://images.unsplash.com/photo-1552664730-d307ca884978",
+      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
+      "https://images.unsplash.com/photo-1557804506-669a67965ba0"
+    ];
+    
+    // Use a consistent but pseudo-random selection based on the prompt
+    const index = Math.abs(prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % fallbackImages.length;
+    return fallbackImages[index];
+  }
+};
 
 const Index = () => {
   const [slides, setSlides] = useState<Slide[]>(sampleSlides);
@@ -97,7 +162,7 @@ const Index = () => {
       logger.error("API key missing");
       toast({
         title: "Configuration Error",
-        description: "OpenAI API key is not configured. Please check your environment variables.",
+        description: "API key is not configured. Please check your environment variables.",
         variant: "destructive",
       });
       setIsGenerating(false);
@@ -131,7 +196,8 @@ Please provide the response in the following JSON format:
       "title": "string",
       "body": "string",
       "notes": "string (optional)",
-      "imageUrl": "string (optional)"
+      "imageUrl": "string (optional)",
+      "ai_image_description": "A detailed description for AI image generation. Should describe the visual elements, style, and mood of the image that would best support the slide's content."
     }
   ],
   "theme": {
@@ -139,7 +205,14 @@ Please provide the response in the following JSON format:
     "secondary": "#hex",
     "background": "#hex"
   }
-}`
+}
+
+For the ai_image_description in each slide:
+- Be specific about visual elements
+- Include style preferences (modern, minimalist, etc.)
+- Describe the mood and atmosphere
+- Focus on professional and presentation-appropriate imagery
+- Avoid text or complex diagrams as they will be handled by the slide content`
           },
           {
             role: "user",
@@ -149,6 +222,7 @@ Style: ${validatedInput.style}
 Additional context: ${validatedInput.description}
 Duration: ${validatedInput.duration} minutes
 
+For each slide, provide a detailed image description that will be used to generate a supporting visual.
 Return the presentation in JSON format as specified.`
           }
         ],
@@ -174,11 +248,28 @@ Return the presentation in JSON format as specified.`
 
       setLoadingMessage("Processing and formatting slides...");
       
-      // Update slides with the generated content
-      const processedSlides = presentation.slides.map((slide, index) => ({
-        ...slide,
-        imageUrl: slide.imageUrl || sampleSlides[index % sampleSlides.length].imageUrl
-      }));
+      // Generate images for slides
+      const processedSlides = await Promise.all(
+        presentation.slides.map(async (slide, index) => {
+          try {
+            if (slide.ai_image_description) {
+              setLoadingMessage(`Generating image for slide ${index + 1}...`);
+              const imageUrl = await generateImage(slide.ai_image_description);
+              return { ...slide, imageUrl };
+            }
+            return {
+              ...slide,
+              imageUrl: slide.imageUrl || sampleSlides[index % sampleSlides.length].imageUrl
+            };
+          } catch (error) {
+            logger.warn(`Using fallback image for slide ${index + 1}`, { error });
+            return {
+              ...slide,
+              imageUrl: sampleSlides[index % sampleSlides.length].imageUrl
+            };
+          }
+        })
+      );
 
       logger.info("Slides processed successfully", { 
         processedCount: processedSlides.length,
@@ -188,7 +279,7 @@ Return the presentation in JSON format as specified.`
       setSlides(processedSlides);
       toast({
         title: "Slides Generated",
-        description: `Created ${processedSlides.length} slides successfully.`,
+        description: `Created ${processedSlides.length} slides with AI-generated images.`,
       });
 
     } catch (error) {
