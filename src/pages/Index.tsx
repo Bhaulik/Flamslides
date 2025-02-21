@@ -5,7 +5,7 @@ import type { Slide } from "@/types/slide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Flame, Loader2 } from "lucide-react";
+import { Flame, Loader2, Play } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -661,6 +661,31 @@ Return the presentation in JSON format as specified.`
           currentSlide={currentSlide}
           onSlideChange={setCurrentSlide}
         />
+
+        {/* Presentation Button */}
+        <div className="flex justify-center mt-4 mb-8">
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700"
+            onClick={() => {
+              // Generate a unique ID for the presentation
+              const presentationId = btoa(JSON.stringify({
+                timestamp: Date.now(),
+                slides: slides.map(slide => ({
+                  ...slide,
+                  id: Math.random().toString(36).substr(2, 9)
+                }))
+              }));
+              
+              // Open presentation in new tab
+              window.open(`/present/${presentationId}`, '_blank');
+            }}
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Start Presentation
+          </Button>
+        </div>
+
         <ChatArea 
           slides={slides} 
           onSlideUpdate={handleSlideUpdate} 
