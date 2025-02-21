@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Slideshow } from "@/components/Slideshow";
 import { ChatArea } from "@/components/ChatArea";
@@ -36,6 +35,7 @@ const steps = [
 
 const Index = () => {
   const [slides, setSlides] = useState<Slide[]>(sampleSlides);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [formData, setFormData] = useState({
     topic: "",
     description: "",
@@ -74,7 +74,7 @@ const Index = () => {
       setLoadingMessage("Creating engaging presentation content with ChatGPT...");
       
       const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -264,26 +264,22 @@ const Index = () => {
         </div>
       )}
 
-      {/* Slideshow */}
-      {!isGenerating && slides.length > 0 && (
-        <div className="w-full">
-          <Slideshow 
-            slides={slides} 
-            autoPlayInterval={5000} 
-          />
-        </div>
-      )}
-
-      {/* Chat Area */}
-      {!isGenerating && slides.length > 0 && (
-        <ChatArea 
-          slides={slides}
-          onSlideUpdate={handleSlideUpdate}
+      {/* Slideshow and Chat Area */}
+      <div className="w-full max-w-7xl mx-auto">
+        <Slideshow 
+          slides={slides} 
+          currentSlide={currentSlide}
+          onSlideChange={setCurrentSlide}
         />
-      )}
+        <ChatArea 
+          slides={slides} 
+          onSlideUpdate={handleSlideUpdate} 
+          selectedSlide={currentSlide}
+          onSlideSelect={setCurrentSlide}
+        />
+      </div>
     </div>
   );
 };
 
 export default Index;
-
