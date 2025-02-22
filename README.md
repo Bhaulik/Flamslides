@@ -118,20 +118,3 @@ npm install
 ```bash
 npm run dev
 ```
-
-## Features
-
-- AI-powered presentation generation
-- Smart image generation for slides
-- Real-time customization
-- Professional themes and layouts
-- Interactive chat interface
-
-## Tech Stack
-
-- Next.js
-- TypeScript
-- OpenAI API
-- Replicate API (Google Imagen)
-- Tailwind CSS
-- Zod for validation
