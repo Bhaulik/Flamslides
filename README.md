@@ -3,6 +3,15 @@
 Flamslides is a modern web application that leverages OpenAI's GPT-4 and DALL-E 3 models to automatically generate and refine beautiful presentations. Create engaging slides in seconds with the power of AI!
 Developed and maintained by Brijesh Patel & Bhaulik Patel
 
+![image](https://github.com/user-attachments/assets/b27318e1-ca07-4479-b2e1-3795205a3e6b)
+
+![image](https://github.com/user-attachments/assets/88fcd5ca-df80-4ac8-90fb-2fcfef4173aa)
+
+![image](https://github.com/user-attachments/assets/365da88c-ddb5-44c6-bf72-9f0e2555b30a)
+
+![image](https://github.com/user-attachments/assets/c08a4d29-b1da-407e-bb5b-a92e53710113)
+
+
 ## ✨ Features
 
 - **AI-Powered Slide Generation**: Generate professional presentations from just a topic and description using GPT-4
