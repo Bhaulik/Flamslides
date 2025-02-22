@@ -99,12 +99,10 @@ cp .env.example .env
 
 2. Get your API keys:
    - OpenAI API Key: Get from [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Replicate API Key: Get from [Replicate Account](https://replicate.com/account/api-tokens)
 
 3. Add your API keys to `.env`:
 ```env
 VITE_OPENAI_API_KEY=your_openai_api_key_here
-VITE_REPLICATE_API_KEY=your_replicate_api_key_here
 ```
 
 ## Development
