@@ -5,7 +5,7 @@ import type { Slide } from "@/types/slide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Flame, Loader2, Play, QrCode, Presentation } from "lucide-react";
+import { Flame, Loader2, Play, QrCode, Presentation, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -557,175 +557,202 @@ Return the presentation in JSON format as specified.`
         </div>
       )}
 
-      {/* Slideshow and Chat Area */}
-      <div className="w-full max-w-7xl mx-auto">
+      {/* Slideshow and Edit Area */}
+      <div className="w-full max-w-[1600px] mx-auto">
         {slides.length > 0 && (
           <>
-            {/* Slide Content Editor */}
-            <div className={cn("mb-8 p-8", CARD_STYLES)}>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className={cn("text-2xl font-bold", GRADIENT_TEXT)}>Edit Current Slide</h3>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                    onClick={() => {
-                      if (currentSlide > 0) {
-                        setCurrentSlide(currentSlide - 1);
-                      }
-                    }}
-                    disabled={currentSlide === 0}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm font-medium text-gray-500">
-                    Slide {currentSlide + 1} of {slides.length}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                    onClick={() => {
-                      if (currentSlide < slides.length - 1) {
-                        setCurrentSlide(currentSlide + 1);
-                      }
-                    }}
-                    disabled={currentSlide === slides.length - 1}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="slideTitle" className="block text-sm font-medium mb-2 text-gray-700">
-                    Title
-                  </label>
-                  <Input
-                    id="slideTitle"
-                    value={slides[currentSlide].title}
-                    onChange={(e) => {
-                      const newSlides = [...slides];
-                      newSlides[currentSlide] = {
-                        ...newSlides[currentSlide],
-                        title: e.target.value
-                      };
-                      setSlides(newSlides);
-                    }}
-                    className={INPUT_STYLES}
-                  />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Edit Current Slide */}
+              <div className={cn("h-full p-8", CARD_STYLES)}>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <h3 className={cn("text-2xl font-bold", GRADIENT_TEXT)}>Edit Current Slide</h3>
+                    <span className="text-sm font-medium px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                      Slide {currentSlide + 1} of {slides.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                      onClick={() => {
+                        if (currentSlide > 0) {
+                          setCurrentSlide(currentSlide - 1);
+                        }
+                      }}
+                      disabled={currentSlide === 0}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                      onClick={() => {
+                        if (currentSlide < slides.length - 1) {
+                          setCurrentSlide(currentSlide + 1);
+                        }
+                      }}
+                      disabled={currentSlide === slides.length - 1}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
                 </div>
                 
-                <div>
-                  <label htmlFor="slideBody" className="block text-sm font-medium mb-2 text-gray-700">
-                    Content
-                  </label>
-                  <Textarea
-                    id="slideBody"
-                    value={slides[currentSlide].body}
-                    onChange={(e) => {
-                      const newSlides = [...slides];
-                      newSlides[currentSlide] = {
-                        ...newSlides[currentSlide],
-                        body: e.target.value
-                      };
-                      setSlides(newSlides);
-                    }}
-                    className={cn("min-h-[120px] resize-none", INPUT_STYLES)}
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="slideNotes" className="block text-sm font-medium mb-2 text-gray-700">
-                    Presenter Notes
-                  </label>
-                  <Textarea
-                    id="slideNotes"
-                    value={slides[currentSlide].notes || ""}
-                    onChange={(e) => {
-                      const newSlides = [...slides];
-                      newSlides[currentSlide] = {
-                        ...newSlides[currentSlide],
-                        notes: e.target.value
-                      };
-                      setSlides(newSlides);
-                    }}
-                    className={cn("min-h-[100px] resize-none", INPUT_STYLES)}
-                    placeholder="Add notes for the presenter..."
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="imageDescription" className="block text-sm font-medium mb-2 text-gray-700">
-                    Image Description
-                  </label>
-                  <div className="flex gap-3">
-                    <Textarea
-                      id="imageDescription"
-                      value={slides[currentSlide].ai_image_description || ""}
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="slideTitle" className="block text-sm font-medium mb-2 text-gray-700">
+                      Title
+                    </label>
+                    <Input
+                      id="slideTitle"
+                      value={slides[currentSlide].title}
                       onChange={(e) => {
                         const newSlides = [...slides];
                         newSlides[currentSlide] = {
                           ...newSlides[currentSlide],
-                          ai_image_description: e.target.value
+                          title: e.target.value
                         };
                         setSlides(newSlides);
                       }}
-                      className={cn("flex-1 min-h-[100px] resize-none", INPUT_STYLES)}
-                      placeholder="Describe the image you want to generate..."
+                      className={cn("text-lg font-medium", INPUT_STYLES)}
                     />
-                    <Button
-                      className="self-start bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
-                      onClick={async () => {
-                        if (!slides[currentSlide].ai_image_description) return;
-                        
-                        try {
-                          setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
-                          setIsGenerating(true);
-                          const newImageUrl = await generateImage(slides[currentSlide].ai_image_description);
-                          
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="slideBody" className="block text-sm font-medium mb-2 text-gray-700">
+                      Content
+                    </label>
+                    <Textarea
+                      id="slideBody"
+                      value={slides[currentSlide].body}
+                      onChange={(e) => {
+                        const newSlides = [...slides];
+                        newSlides[currentSlide] = {
+                          ...newSlides[currentSlide],
+                          body: e.target.value
+                        };
+                        setSlides(newSlides);
+                      }}
+                      className={cn("min-h-[120px] resize-none text-base leading-relaxed", INPUT_STYLES)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="slideNotes" className="block text-sm font-medium mb-2 text-gray-700">
+                      Presenter Notes
+                    </label>
+                    <Textarea
+                      id="slideNotes"
+                      value={slides[currentSlide].notes || ""}
+                      onChange={(e) => {
+                        const newSlides = [...slides];
+                        newSlides[currentSlide] = {
+                          ...newSlides[currentSlide],
+                          notes: e.target.value
+                        };
+                        setSlides(newSlides);
+                      }}
+                      className={cn("min-h-[100px] resize-none", INPUT_STYLES)}
+                      placeholder="Add notes for the presenter..."
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="imageDescription" className="block text-sm font-medium text-gray-700">
+                        Image Description
+                      </label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        onClick={() => {
                           const newSlides = [...slides];
                           newSlides[currentSlide] = {
                             ...newSlides[currentSlide],
-                            imageUrl: newImageUrl
+                            ai_image_description: ""
                           };
                           setSlides(newSlides);
+                        }}
+                        disabled={!slides[currentSlide].ai_image_description}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                    <div className="flex gap-3">
+                      <Textarea
+                        id="imageDescription"
+                        value={slides[currentSlide].ai_image_description || ""}
+                        onChange={(e) => {
+                          const newSlides = [...slides];
+                          newSlides[currentSlide] = {
+                            ...newSlides[currentSlide],
+                            ai_image_description: e.target.value
+                          };
+                          setSlides(newSlides);
+                        }}
+                        className={cn("flex-1 min-h-[100px] resize-none", INPUT_STYLES)}
+                        placeholder="Describe the image you want to generate..."
+                      />
+                      <Button
+                        className="self-start bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-sm"
+                        onClick={async () => {
+                          if (!slides[currentSlide].ai_image_description) return;
                           
-                          toast({
-                            title: "Image Generated",
-                            description: "New image has been generated for the slide.",
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to generate new image. Please try again.",
-                            variant: "destructive",
-                          });
-                        } finally {
-                          setIsGenerating(false);
-                          setLoadingMessage("");
-                        }
-                      }}
-                      disabled={!slides[currentSlide].ai_image_description || isGenerating}
-                    >
-                      {isGenerating ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        "Regenerate Image"
-                      )}
-                    </Button>
+                          try {
+                            setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
+                            setIsGenerating(true);
+                            const newImageUrl = await generateImage(slides[currentSlide].ai_image_description);
+                            
+                            const newSlides = [...slides];
+                            newSlides[currentSlide] = {
+                              ...newSlides[currentSlide],
+                              imageUrl: newImageUrl
+                            };
+                            setSlides(newSlides);
+                            
+                            toast({
+                              title: "Image Generated",
+                              description: "New image has been generated for the slide.",
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to generate new image. Please try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsGenerating(false);
+                            setLoadingMessage("");
+                          }
+                        }}
+                        disabled={!slides[currentSlide].ai_image_description || isGenerating}
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          "Regenerate Image"
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <Slideshow 
-              slides={slides} 
-              currentSlide={currentSlide}
-              onSlideChange={setCurrentSlide}
-            />
+              {/* Slideshow */}
+              <div className="h-full">
+                <Slideshow 
+                  slides={slides} 
+                  currentSlide={currentSlide}
+                  onSlideChange={setCurrentSlide}
+                />
+              </div>
+            </div>
 
             {/* Presentation Buttons */}
             <div className="flex flex-col items-center gap-4 my-8">
