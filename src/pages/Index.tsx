@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Slideshow } from "@/components/Slideshow";
-import { ChatArea } from "@/components/ChatArea";
 import type { Slide } from "@/types/slide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -706,13 +705,6 @@ Return the presentation in JSON format as specified.`
                       setLoadingMessage("");
                     }
                   }}
-                />
-
-                <ChatArea 
-                  slides={slides} 
-                  onSlideUpdate={handleSlideUpdate} 
-                  selectedSlide={currentSlide}
-                  onSlideSelect={setCurrentSlide}
                 />
               </div>
             </div>
