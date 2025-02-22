@@ -5,7 +5,7 @@ import type { Slide } from "@/types/slide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Flame, Loader2, Play, QrCode, Presentation, ChevronLeft, ChevronRight } from "lucide-react";
+import { Flame, Loader2, Play, QrCode, Presentation, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -26,6 +26,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { SlideManager } from "@/components/SlideManager";
+import { SlideEditor } from "@/components/SlideEditor";
+import { exportToPowerPoint } from "@/lib/export";
 
 const sampleSlides: Slide[] = [
   {
@@ -403,6 +406,28 @@ Return the presentation in JSON format as specified.`
     window.open(`/present/${presentationId}`, '_blank');
   };
 
+  const handleExportPPT = async () => {
+    try {
+      setLoadingMessage("Exporting to PowerPoint...");
+      setIsGenerating(true);
+      const fileName = await exportToPowerPoint(slides, formData.topic || "FlamSlides Presentation");
+      toast({
+        title: "Export Successful",
+        description: `Presentation saved as ${fileName}`,
+      });
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export presentation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+      setLoadingMessage("");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col gap-8 bg-gradient-to-br from-orange-50 to-red-50 p-8">
       {/* Title Area */}
@@ -416,120 +441,139 @@ Return the presentation in JSON format as specified.`
         <p className="text-lg text-gray-600">Create stunning presentations with AI-powered content generation</p>
       </div>
 
-      {/* Input Form */}
-      <div className={cn("w-full max-w-2xl mx-auto p-8", CARD_STYLES)}>
-        <h2 className={cn("text-3xl font-bold mb-6 text-center", GRADIENT_TEXT)}>Generate Slideshow</h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="topic" className="block text-sm font-medium mb-2 text-gray-700">
-              Topic/Title
-            </label>
-            <Input
-              id="topic"
-              name="topic"
-              value={formData.topic}
-              onChange={handleInputChange}
-              placeholder="Enter the main topic"
-              className={INPUT_STYLES}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2 text-gray-700">
-              Description
-            </label>
-            <Textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Describe what you want in your slides"
-              className={cn("min-h-[120px] resize-none", INPUT_STYLES)}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
+      <div className="w-full max-w-6xl mx-auto grid grid-cols-[1fr_300px] gap-8">
+        {/* Input Form */}
+        <div className={cn("p-8", CARD_STYLES)}>
+          <h2 className={cn("text-3xl font-bold mb-6 text-center", GRADIENT_TEXT)}>Generate Slideshow</h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="numberOfSlides" className="block text-sm font-medium mb-2 text-gray-700">
-                Number of Slides
+              <label htmlFor="topic" className="block text-sm font-medium mb-2 text-gray-700">
+                Topic/Title
               </label>
               <Input
-                id="numberOfSlides"
-                name="numberOfSlides"
-                type="number"
-                min={1}
-                max={10}
-                value={formData.numberOfSlides}
+                id="topic"
+                name="topic"
+                value={formData.topic}
                 onChange={handleInputChange}
+                placeholder="Enter the main topic"
                 className={INPUT_STYLES}
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">Between 1-10 slides</p>
             </div>
 
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium mb-2 text-gray-700">
-                Duration
+              <label htmlFor="description" className="block text-sm font-medium mb-2 text-gray-700">
+                Description
               </label>
-              <Input
-                id="duration"
-                name="duration"
-                type="number"
-                min={1}
-                max={30}
-                value={formData.duration}
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
                 onChange={handleInputChange}
-                className={INPUT_STYLES}
+                placeholder="Describe what you want in your slides"
+                className={cn("min-h-[120px] resize-none", INPUT_STYLES)}
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">Between 1-30 minutes</p>
             </div>
-          </div>
 
-          <div>
-            <label htmlFor="style" className="block text-sm font-medium mb-2 text-gray-700">
-              Presentation Style
-            </label>
-            <select
-              id="style"
-              name="style"
-              value={formData.style}
-              onChange={handleInputChange}
-              className={cn("w-full rounded-md px-3 py-2", INPUT_STYLES)}
-              required
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="numberOfSlides" className="block text-sm font-medium mb-2 text-gray-700">
+                  Number of Slides
+                </label>
+                <Input
+                  id="numberOfSlides"
+                  name="numberOfSlides"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={formData.numberOfSlides}
+                  onChange={handleInputChange}
+                  className={INPUT_STYLES}
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">Between 1-10 slides</p>
+              </div>
+
+              <div>
+                <label htmlFor="duration" className="block text-sm font-medium mb-2 text-gray-700">
+                  Duration
+                </label>
+                <Input
+                  id="duration"
+                  name="duration"
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={formData.duration}
+                  onChange={handleInputChange}
+                  className={INPUT_STYLES}
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">Between 1-30 minutes</p>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="style" className="block text-sm font-medium mb-2 text-gray-700">
+                Presentation Style
+              </label>
+              <select
+                id="style"
+                name="style"
+                value={formData.style}
+                onChange={handleInputChange}
+                className={cn("w-full rounded-md px-3 py-2", INPUT_STYLES)}
+                required
+              >
+                <option value="professional">Professional</option>
+                <option value="casual">Casual</option>
+                <option value="academic">Academic</option>
+              </select>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg"
+              size="lg"
+              disabled={isGenerating}
             >
-              <option value="professional">Professional</option>
-              <option value="casual">Casual</option>
-              <option value="academic">Academic</option>
-            </select>
-          </div>
+              {isGenerating ? (
+                <div className="flex items-center justify-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Generating Presentation...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-3">
+                  <Presentation className="h-5 w-5" />
+                  <span>Generate Slideshow</span>
+                </div>
+              )}
+            </Button>
+          </form>
+        </div>
 
-          <Button 
-            type="submit" 
-            className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg"
-            size="lg"
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <div className="flex items-center justify-center gap-3">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Generating Presentation...</span>
+        {/* Steps Section - Now Vertical */}
+        {showSteps && (
+          <div className="space-y-4">
+            {steps.map((step) => (
+              <div key={step.number} className={cn("p-6 relative", CARD_STYLES)}>
+                <div className="absolute -left-4 flex items-center justify-center w-8 h-8 text-white bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-lg font-bold text-lg">
+                  {step.number}
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{step.description}</p>
+                </div>
               </div>
-            ) : (
-              <div className="flex items-center justify-center gap-3">
-                <Presentation className="h-5 w-5" />
-                <span>Generate Slideshow</span>
-              </div>
-            )}
-          </Button>
-        </form>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Loading Indicator */}
       {isGenerating && (
-        <div className={cn("w-full max-w-2xl mx-auto p-8", CARD_STYLES)}>
+        <div className={cn("w-full max-w-2xl mx-auto p-8 mt-8", CARD_STYLES)}>
           <div className="flex items-center justify-center gap-4 mb-6">
             <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
             <p className="text-xl font-medium text-gray-700">{loadingMessage}</p>
@@ -540,268 +584,126 @@ Return the presentation in JSON format as specified.`
         </div>
       )}
 
-      {/* Steps Section */}
-      {showSteps && (
-        <div className="w-full max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8">
-            {steps.map((step) => (
-              <div key={step.number} className={cn("p-8 relative", CARD_STYLES)}>
-                <div className="absolute -top-4 -left-4 flex items-center justify-center w-12 h-12 text-white bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg font-bold text-xl">
-                  {step.number}
-                </div>
-                <h3 className="text-xl font-semibold mb-4 mt-2">{step.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Slideshow and Edit Area */}
       <div className="w-full max-w-[1600px] mx-auto">
         {slides.length > 0 && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Edit Current Slide */}
-              <div className={cn("h-full p-8", CARD_STYLES)}>
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <h3 className={cn("text-2xl font-bold", GRADIENT_TEXT)}>Edit Current Slide</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
+              {/* Left Column - Slideshow and Editor */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-2xl font-bold">Preview</h2>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                      onClick={handleExportPPT}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileDown className="h-4 w-4 mr-2" />
+                      )}
+                      Export to PPT
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg"
+                      onClick={handleStartPresentation}
+                    >
+                      <Play className="w-4 w-4 mr-2" />
+                      Start Presentation
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Slideshow */}
+                <div>
+                  <Slideshow 
+                    slides={slides} 
+                    currentSlide={currentSlide}
+                    onSlideChange={setCurrentSlide}
+                  />
+                </div>
+
+                {/* Slide Editor */}
+                <div className={cn("p-4 rounded-xl mt-2", CARD_STYLES)}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Edit Current Slide</h3>
                     <span className="text-sm font-medium px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
                       Slide {currentSlide + 1} of {slides.length}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                      onClick={() => {
-                        if (currentSlide > 0) {
-                          setCurrentSlide(currentSlide - 1);
-                        }
-                      }}
-                      disabled={currentSlide === 0}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                      onClick={() => {
-                        if (currentSlide < slides.length - 1) {
-                          setCurrentSlide(currentSlide + 1);
-                        }
-                      }}
-                      disabled={currentSlide === slides.length - 1}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label htmlFor="slideTitle" className="block text-sm font-medium mb-2 text-gray-700">
-                      Title
-                    </label>
-                    <Input
-                      id="slideTitle"
-                      value={slides[currentSlide].title}
-                      onChange={(e) => {
-                        const newSlides = [...slides];
-                        newSlides[currentSlide] = {
-                          ...newSlides[currentSlide],
-                          title: e.target.value
-                        };
-                        setSlides(newSlides);
-                      }}
-                      className={cn("text-lg font-medium", INPUT_STYLES)}
-                    />
-                  </div>
                   
-                  <div>
-                    <label htmlFor="slideBody" className="block text-sm font-medium mb-2 text-gray-700">
-                      Content
-                    </label>
-                    <Textarea
-                      id="slideBody"
-                      value={slides[currentSlide].body}
-                      onChange={(e) => {
-                        const newSlides = [...slides];
-                        newSlides[currentSlide] = {
-                          ...newSlides[currentSlide],
-                          body: e.target.value
-                        };
-                        setSlides(newSlides);
-                      }}
-                      className={cn("min-h-[120px] resize-none text-base leading-relaxed", INPUT_STYLES)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="slideNotes" className="block text-sm font-medium mb-2 text-gray-700">
-                      Presenter Notes
-                    </label>
-                    <Textarea
-                      id="slideNotes"
-                      value={slides[currentSlide].notes || ""}
-                      onChange={(e) => {
-                        const newSlides = [...slides];
-                        newSlides[currentSlide] = {
-                          ...newSlides[currentSlide],
-                          notes: e.target.value
-                        };
-                        setSlides(newSlides);
-                      }}
-                      className={cn("min-h-[100px] resize-none", INPUT_STYLES)}
-                      placeholder="Add notes for the presenter..."
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="imageDescription" className="block text-sm font-medium text-gray-700">
-                        Image Description
-                      </label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                        onClick={() => {
-                          const newSlides = [...slides];
-                          newSlides[currentSlide] = {
-                            ...newSlides[currentSlide],
-                            ai_image_description: ""
-                          };
-                          setSlides(newSlides);
-                        }}
-                        disabled={!slides[currentSlide].ai_image_description}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                    <div className="flex gap-3">
-                      <Textarea
-                        id="imageDescription"
-                        value={slides[currentSlide].ai_image_description || ""}
-                        onChange={(e) => {
-                          const newSlides = [...slides];
-                          newSlides[currentSlide] = {
-                            ...newSlides[currentSlide],
-                            ai_image_description: e.target.value
-                          };
-                          setSlides(newSlides);
-                        }}
-                        className={cn("flex-1 min-h-[100px] resize-none", INPUT_STYLES)}
-                        placeholder="Describe the image you want to generate..."
-                      />
-                      <Button
-                        className="self-start bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-sm"
-                        onClick={async () => {
-                          if (!slides[currentSlide].ai_image_description) return;
-                          
-                          try {
-                            setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
-                            setIsGenerating(true);
-                            const newImageUrl = await generateImage(slides[currentSlide].ai_image_description);
-                            
-                            const newSlides = [...slides];
-                            newSlides[currentSlide] = {
-                              ...newSlides[currentSlide],
-                              imageUrl: newImageUrl
-                            };
-                            setSlides(newSlides);
-                            
-                            toast({
-                              title: "Image Generated",
-                              description: "New image has been generated for the slide.",
-                            });
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to generate new image. Please try again.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsGenerating(false);
-                            setLoadingMessage("");
-                          }
-                        }}
-                        disabled={!slides[currentSlide].ai_image_description || isGenerating}
-                      >
-                        {isGenerating ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          "Regenerate Image"
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                  <SlideEditor
+                    slide={slides[currentSlide]}
+                    onSlideUpdate={(updatedSlide) => handleSlideUpdate(currentSlide, updatedSlide)}
+                    onGenerateImage={async (description) => {
+                      setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
+                      setIsGenerating(true);
+                      try {
+                        const newImageUrl = await generateImage(description);
+                        return newImageUrl;
+                      } finally {
+                        setIsGenerating(false);
+                        setLoadingMessage("");
+                      }
+                    }}
+                    isGenerating={isGenerating}
+                  />
                 </div>
               </div>
 
-              {/* Slideshow */}
-              <div className="h-full">
-                <Slideshow 
-                  slides={slides} 
+              {/* Right Column - Slide Manager & Chat */}
+              <div className="space-y-8">
+                <SlideManager
+                  slides={slides}
+                  onSlidesChange={setSlides}
                   currentSlide={currentSlide}
-                  onSlideChange={setCurrentSlide}
+                  onSlideSelect={setCurrentSlide}
+                />
+
+                <ChatArea 
+                  slides={slides} 
+                  onSlideUpdate={handleSlideUpdate} 
+                  selectedSlide={currentSlide}
+                  onSlideSelect={setCurrentSlide}
                 />
               </div>
             </div>
 
-            {/* Presentation Buttons */}
-            <div className="flex flex-col items-center gap-4 my-8">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg px-8"
-                onClick={handleStartPresentation}
-              >
-                <Play className="w-5 h-5 mr-3" />
-                Start Presentation
-              </Button>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                  >
-                    <QrCode className="w-4 h-4 mr-2" />
-                    Generate QR Code
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className={GRADIENT_TEXT}>Share Presentation</DialogTitle>
-                  </DialogHeader>
-                  <div className="flex flex-col items-center justify-center p-8 space-y-6">
-                    <QRCodeSVG
-                      value={`${window.location.origin}/present/${generatePresentationId()}`}
-                      size={256}
-                      level="M"
-                      includeMargin
-                      className="border-8 border-white rounded-2xl shadow-xl"
-                    />
-                    <p className="text-sm text-gray-600 text-center">
-                      Scan this QR code to follow along with the presentation on your device
-                    </p>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <ChatArea 
-              slides={slides} 
-              onSlideUpdate={handleSlideUpdate} 
-              selectedSlide={currentSlide}
-              onSlideSelect={setCurrentSlide}
-            />
+            {/* QR Code Dialog */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-8 border-orange-200 text-orange-700 hover:bg-orange-50"
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  Generate QR Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className={GRADIENT_TEXT}>Share Presentation</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center justify-center p-8 space-y-6">
+                  <QRCodeSVG
+                    value={`${window.location.origin}/present/${generatePresentationId()}`}
+                    size={256}
+                    level="M"
+                    includeMargin
+                    className="border-8 border-white rounded-2xl shadow-xl"
+                  />
+                  <p className="text-sm text-gray-600 text-center">
+                    Scan this QR code to follow along with the presentation on your device
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
