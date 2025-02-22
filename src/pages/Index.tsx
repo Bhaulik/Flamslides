@@ -5,7 +5,7 @@ import type { Slide } from "@/types/slide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Flame, Loader2, Play } from "lucide-react";
+import { Flame, Loader2, Play, QrCode, Presentation } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -15,9 +15,17 @@ import {
   PresentationRequest,
   PresentationSchema,
   PresentationRequestType,
-  Presentation,
   openAIResponseSchema
 } from "@/types/slide";
+import { QRCodeSVG } from 'qrcode.react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 const sampleSlides: Slide[] = [
   {
@@ -72,7 +80,28 @@ The presentation should follow this structure:
 - Content slides developing key points
 - Summary or conclusion slide
 
-For theme colors, use hex color codes (e.g., #2563eb for blue).`;
+For theme colors, provide a complete theme with the following hex color codes:
+- primary: Main brand color (e.g., #2563eb)
+- secondary: Complementary color
+- background: Base background color
+- accent: Highlight color
+- text:
+  - heading: Color for headings
+  - body: Color for main content
+  - muted: Color for less important text
+
+Example theme:
+{
+  "primary": "#2563eb",
+  "secondary": "#4f46e5",
+  "background": "#ffffff",
+  "accent": "#f59e0b",
+  "text": {
+    "heading": "#1e293b",
+    "body": "#334155",
+    "muted": "#64748b"
+  }
+}`;
 
 const generateImage = async (prompt: string): Promise<string> => {
   try {
@@ -133,6 +162,10 @@ const generateImage = async (prompt: string): Promise<string> => {
     return fallbackImages[index];
   }
 };
+
+const GRADIENT_TEXT = "bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent";
+const CARD_STYLES = "bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-orange-100/20";
+const INPUT_STYLES = "bg-white/80 border-orange-100/30 focus:border-orange-500/30 focus:ring-orange-500/20";
 
 const Index = () => {
   const [slides, setSlides] = useState<Slide[]>(sampleSlides);
@@ -349,25 +382,47 @@ Return the presentation in JSON format as specified.`
     setSlides(newSlides);
   };
 
+  const generatePresentationId = () => {
+    // Generate a shorter unique ID
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    
+    // Store the full presentation data in localStorage
+    const presentationData = {
+      timestamp: Date.now(),
+      slides: slides.map(slide => ({
+        ...slide,
+        id: Math.random().toString(36).substr(2, 9)
+      }))
+    };
+    localStorage.setItem(`presentation_${uniqueId}`, JSON.stringify(presentationData));
+    
+    return uniqueId;
+  };
+
+  const handleStartPresentation = () => {
+    const presentationId = generatePresentationId();
+    window.open(`/present/${presentationId}`, '_blank');
+  };
+
   return (
-    <div className="min-h-screen flex flex-col gap-8 bg-gradient-to-b from-gray-50 to-gray-100 p-4">
+    <div className="min-h-screen flex flex-col gap-8 bg-gradient-to-br from-orange-50 to-red-50 p-8">
       {/* Title Area */}
-      <div className="w-full text-center py-8 bg-white shadow-lg rounded-lg">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <Flame className="h-8 w-8 text-orange-500" />
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+      <div className={cn("w-full text-center py-12", CARD_STYLES)}>
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <Flame className="h-10 w-10 text-orange-500" />
+          <h1 className={cn("text-5xl font-bold", GRADIENT_TEXT)}>
             FlamSlides
           </h1>
         </div>
-        <p className="text-gray-600">Create stunning presentations with AI-powered content generation</p>
+        <p className="text-lg text-gray-600">Create stunning presentations with AI-powered content generation</p>
       </div>
 
       {/* Input Form */}
-      <div className="w-full max-w-xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-4 text-center">Generate Slideshow</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <div className={cn("w-full max-w-2xl mx-auto p-8", CARD_STYLES)}>
+        <h2 className={cn("text-3xl font-bold mb-6 text-center", GRADIENT_TEXT)}>Generate Slideshow</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="topic" className="block text-sm font-medium mb-1">
+            <label htmlFor="topic" className="block text-sm font-medium mb-2 text-gray-700">
               Topic/Title
             </label>
             <Input
@@ -376,12 +431,13 @@ Return the presentation in JSON format as specified.`
               value={formData.topic}
               onChange={handleInputChange}
               placeholder="Enter the main topic"
+              className={INPUT_STYLES}
               required
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-1">
+            <label htmlFor="description" className="block text-sm font-medium mb-2 text-gray-700">
               Description
             </label>
             <Textarea
@@ -390,15 +446,15 @@ Return the presentation in JSON format as specified.`
               value={formData.description}
               onChange={handleInputChange}
               placeholder="Describe what you want in your slides"
+              className={cn("min-h-[120px] resize-none", INPUT_STYLES)}
               required
-              className="min-h-[100px]"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label htmlFor="numberOfSlides" className="block text-sm font-medium mb-1">
-                Number of Slides (1-10)
+              <label htmlFor="numberOfSlides" className="block text-sm font-medium mb-2 text-gray-700">
+                Number of Slides
               </label>
               <Input
                 id="numberOfSlides"
@@ -408,13 +464,15 @@ Return the presentation in JSON format as specified.`
                 max={10}
                 value={formData.numberOfSlides}
                 onChange={handleInputChange}
+                className={INPUT_STYLES}
                 required
               />
+              <p className="mt-1 text-xs text-gray-500">Between 1-10 slides</p>
             </div>
 
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium mb-1">
-                Duration (1-30 min)
+              <label htmlFor="duration" className="block text-sm font-medium mb-2 text-gray-700">
+                Duration
               </label>
               <Input
                 id="duration"
@@ -424,13 +482,15 @@ Return the presentation in JSON format as specified.`
                 max={30}
                 value={formData.duration}
                 onChange={handleInputChange}
+                className={INPUT_STYLES}
                 required
               />
+              <p className="mt-1 text-xs text-gray-500">Between 1-30 minutes</p>
             </div>
           </div>
 
           <div>
-            <label htmlFor="style" className="block text-sm font-medium mb-1">
+            <label htmlFor="style" className="block text-sm font-medium mb-2 text-gray-700">
               Presentation Style
             </label>
             <select
@@ -438,7 +498,7 @@ Return the presentation in JSON format as specified.`
               name="style"
               value={formData.style}
               onChange={handleInputChange}
-              className="w-full rounded-md border border-gray-300 px-3 py-2"
+              className={cn("w-full rounded-md px-3 py-2", INPUT_STYLES)}
               required
             >
               <option value="professional">Professional</option>
@@ -449,16 +509,20 @@ Return the presentation in JSON format as specified.`
 
           <Button 
             type="submit" 
-            className="w-full"
+            className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg"
+            size="lg"
             disabled={isGenerating}
           >
             {isGenerating ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Generating...</span>
+              <div className="flex items-center justify-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Generating Presentation...</span>
               </div>
             ) : (
-              "Generate Slideshow"
+              <div className="flex items-center justify-center gap-3">
+                <Presentation className="h-5 w-5" />
+                <span>Generate Slideshow</span>
+              </div>
             )}
           </Button>
         </form>
@@ -466,12 +530,12 @@ Return the presentation in JSON format as specified.`
 
       {/* Loading Indicator */}
       {isGenerating && (
-        <div className="w-full max-w-xl mx-auto bg-white rounded-lg shadow-lg p-6 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
-            <p className="text-lg font-medium text-gray-700">{loadingMessage}</p>
+        <div className={cn("w-full max-w-2xl mx-auto p-8", CARD_STYLES)}>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <p className="text-xl font-medium text-gray-700">{loadingMessage}</p>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-orange-100 rounded-full overflow-hidden">
             <div className="h-full bg-orange-500 rounded-full animate-pulse" style={{ width: '100%' }} />
           </div>
         </div>
@@ -479,17 +543,15 @@ Return the presentation in JSON format as specified.`
 
       {/* Steps Section */}
       {showSteps && (
-        <div className="w-full max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step) => (
-              <div key={step.number} className="bg-white p-6 rounded-lg shadow-lg">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="flex items-center justify-center w-8 h-8 text-white bg-orange-500 rounded-full font-bold">
-                    {step.number}
-                  </span>
-                  <h3 className="font-semibold text-lg">{step.title}</h3>
+              <div key={step.number} className={cn("p-8 relative", CARD_STYLES)}>
+                <div className="absolute -top-4 -left-4 flex items-center justify-center w-12 h-12 text-white bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg font-bold text-xl">
+                  {step.number}
                 </div>
-                <p className="text-gray-600">{step.description}</p>
+                <h3 className="text-xl font-semibold mb-4 mt-2">{step.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{step.description}</p>
               </div>
             ))}
           </div>
@@ -498,200 +560,224 @@ Return the presentation in JSON format as specified.`
 
       {/* Slideshow and Chat Area */}
       <div className="w-full max-w-7xl mx-auto">
-        {/* Slide Content Editor */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Edit Current Slide</h3>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (currentSlide > 0) {
-                    setCurrentSlide(currentSlide - 1);
-                  }
-                }}
-                disabled={currentSlide === 0}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-gray-500">
-                Slide {currentSlide + 1} of {slides.length}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (currentSlide < slides.length - 1) {
-                    setCurrentSlide(currentSlide + 1);
-                  }
-                }}
-                disabled={currentSlide === slides.length - 1}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="slideTitle" className="block text-sm font-medium text-gray-700 mb-1">
-                Title
-              </label>
-              <Input
-                id="slideTitle"
-                value={slides[currentSlide].title}
-                onChange={(e) => {
-                  const newSlides = [...slides];
-                  newSlides[currentSlide] = {
-                    ...newSlides[currentSlide],
-                    title: e.target.value
-                  };
-                  setSlides(newSlides);
-                }}
-                className="w-full"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="slideBody" className="block text-sm font-medium text-gray-700 mb-1">
-                Content
-              </label>
-              <Textarea
-                id="slideBody"
-                value={slides[currentSlide].body}
-                onChange={(e) => {
-                  const newSlides = [...slides];
-                  newSlides[currentSlide] = {
-                    ...newSlides[currentSlide],
-                    body: e.target.value
-                  };
-                  setSlides(newSlides);
-                }}
-                className="w-full min-h-[100px]"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="slideNotes" className="block text-sm font-medium text-gray-700 mb-1">
-                Presenter Notes (Optional)
-              </label>
-              <Textarea
-                id="slideNotes"
-                value={slides[currentSlide].notes || ""}
-                onChange={(e) => {
-                  const newSlides = [...slides];
-                  newSlides[currentSlide] = {
-                    ...newSlides[currentSlide],
-                    notes: e.target.value
-                  };
-                  setSlides(newSlides);
-                }}
-                className="w-full min-h-[80px]"
-                placeholder="Add notes for the presenter..."
-              />
-            </div>
-
-            <div>
-              <label htmlFor="imageDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                Image Description
-              </label>
-              <div className="flex gap-2">
-                <Textarea
-                  id="imageDescription"
-                  value={slides[currentSlide].ai_image_description || ""}
-                  onChange={(e) => {
-                    const newSlides = [...slides];
-                    newSlides[currentSlide] = {
-                      ...newSlides[currentSlide],
-                      ai_image_description: e.target.value
-                    };
-                    setSlides(newSlides);
-                  }}
-                  className="flex-1 min-h-[80px]"
-                  placeholder="Describe the image you want to generate..."
-                />
-                <Button
-                  className="self-start"
-                  onClick={async () => {
-                    if (!slides[currentSlide].ai_image_description) return;
-                    
-                    try {
-                      setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
-                      setIsGenerating(true);
-                      const newImageUrl = await generateImage(slides[currentSlide].ai_image_description);
-                      
+        {slides.length > 0 && (
+          <>
+            {/* Slide Content Editor */}
+            <div className={cn("mb-8 p-8", CARD_STYLES)}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className={cn("text-2xl font-bold", GRADIENT_TEXT)}>Edit Current Slide</h3>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                    onClick={() => {
+                      if (currentSlide > 0) {
+                        setCurrentSlide(currentSlide - 1);
+                      }
+                    }}
+                    disabled={currentSlide === 0}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm font-medium text-gray-500">
+                    Slide {currentSlide + 1} of {slides.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                    onClick={() => {
+                      if (currentSlide < slides.length - 1) {
+                        setCurrentSlide(currentSlide + 1);
+                      }
+                    }}
+                    disabled={currentSlide === slides.length - 1}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="slideTitle" className="block text-sm font-medium mb-2 text-gray-700">
+                    Title
+                  </label>
+                  <Input
+                    id="slideTitle"
+                    value={slides[currentSlide].title}
+                    onChange={(e) => {
                       const newSlides = [...slides];
                       newSlides[currentSlide] = {
                         ...newSlides[currentSlide],
-                        imageUrl: newImageUrl
+                        title: e.target.value
                       };
                       setSlides(newSlides);
-                      
-                      toast({
-                        title: "Image Generated",
-                        description: "New image has been generated for the slide.",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to generate new image. Please try again.",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setIsGenerating(false);
-                      setLoadingMessage("");
-                    }
-                  }}
-                  disabled={!slides[currentSlide].ai_image_description || isGenerating}
-                >
-                  {isGenerating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Regenerate Image"
-                  )}
-                </Button>
+                    }}
+                    className={INPUT_STYLES}
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="slideBody" className="block text-sm font-medium mb-2 text-gray-700">
+                    Content
+                  </label>
+                  <Textarea
+                    id="slideBody"
+                    value={slides[currentSlide].body}
+                    onChange={(e) => {
+                      const newSlides = [...slides];
+                      newSlides[currentSlide] = {
+                        ...newSlides[currentSlide],
+                        body: e.target.value
+                      };
+                      setSlides(newSlides);
+                    }}
+                    className={cn("min-h-[120px] resize-none", INPUT_STYLES)}
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="slideNotes" className="block text-sm font-medium mb-2 text-gray-700">
+                    Presenter Notes
+                  </label>
+                  <Textarea
+                    id="slideNotes"
+                    value={slides[currentSlide].notes || ""}
+                    onChange={(e) => {
+                      const newSlides = [...slides];
+                      newSlides[currentSlide] = {
+                        ...newSlides[currentSlide],
+                        notes: e.target.value
+                      };
+                      setSlides(newSlides);
+                    }}
+                    className={cn("min-h-[100px] resize-none", INPUT_STYLES)}
+                    placeholder="Add notes for the presenter..."
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="imageDescription" className="block text-sm font-medium mb-2 text-gray-700">
+                    Image Description
+                  </label>
+                  <div className="flex gap-3">
+                    <Textarea
+                      id="imageDescription"
+                      value={slides[currentSlide].ai_image_description || ""}
+                      onChange={(e) => {
+                        const newSlides = [...slides];
+                        newSlides[currentSlide] = {
+                          ...newSlides[currentSlide],
+                          ai_image_description: e.target.value
+                        };
+                        setSlides(newSlides);
+                      }}
+                      className={cn("flex-1 min-h-[100px] resize-none", INPUT_STYLES)}
+                      placeholder="Describe the image you want to generate..."
+                    />
+                    <Button
+                      className="self-start bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                      onClick={async () => {
+                        if (!slides[currentSlide].ai_image_description) return;
+                        
+                        try {
+                          setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
+                          setIsGenerating(true);
+                          const newImageUrl = await generateImage(slides[currentSlide].ai_image_description);
+                          
+                          const newSlides = [...slides];
+                          newSlides[currentSlide] = {
+                            ...newSlides[currentSlide],
+                            imageUrl: newImageUrl
+                          };
+                          setSlides(newSlides);
+                          
+                          toast({
+                            title: "Image Generated",
+                            description: "New image has been generated for the slide.",
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to generate new image. Please try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsGenerating(false);
+                          setLoadingMessage("");
+                        }
+                      }}
+                      disabled={!slides[currentSlide].ai_image_description || isGenerating}
+                    >
+                      {isGenerating ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        "Regenerate Image"
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <Slideshow 
-          slides={slides} 
-          currentSlide={currentSlide}
-          onSlideChange={setCurrentSlide}
-        />
+            <Slideshow 
+              slides={slides} 
+              currentSlide={currentSlide}
+              onSlideChange={setCurrentSlide}
+            />
 
-        {/* Presentation Button */}
-        <div className="flex justify-center mt-4 mb-8">
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700"
-            onClick={() => {
-              // Generate a unique ID for the presentation
-              const presentationId = btoa(JSON.stringify({
-                timestamp: Date.now(),
-                slides: slides.map(slide => ({
-                  ...slide,
-                  id: Math.random().toString(36).substr(2, 9)
-                }))
-              }));
-              
-              // Open presentation in new tab
-              window.open(`/present/${presentationId}`, '_blank');
-            }}
-          >
-            <Play className="w-5 h-5 mr-2" />
-            Start Presentation
-          </Button>
-        </div>
+            {/* Presentation Buttons */}
+            <div className="flex flex-col items-center gap-4 my-8">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg px-8"
+                onClick={handleStartPresentation}
+              >
+                <Play className="w-5 h-5 mr-3" />
+                Start Presentation
+              </Button>
 
-        <ChatArea 
-          slides={slides} 
-          onSlideUpdate={handleSlideUpdate} 
-          selectedSlide={currentSlide}
-          onSlideSelect={setCurrentSlide}
-        />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                  >
+                    <QrCode className="w-4 h-4 mr-2" />
+                    Generate QR Code
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className={GRADIENT_TEXT}>Share Presentation</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col items-center justify-center p-8 space-y-6">
+                    <QRCodeSVG
+                      value={`${window.location.origin}/present/${generatePresentationId()}`}
+                      size={256}
+                      level="M"
+                      includeMargin
+                      className="border-8 border-white rounded-2xl shadow-xl"
+                    />
+                    <p className="text-sm text-gray-600 text-center">
+                      Scan this QR code to follow along with the presentation on your device
+                    </p>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <ChatArea 
+              slides={slides} 
+              onSlideUpdate={handleSlideUpdate} 
+              selectedSlide={currentSlide}
+              onSlideSelect={setCurrentSlide}
+            />
+          </>
+        )}
       </div>
     </div>
   );

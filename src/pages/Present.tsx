@@ -25,6 +25,10 @@ interface Message {
   content: string;
 }
 
+const SLIDE_TRANSITION = "transform transition-all duration-500 ease-in-out";
+const CONTROL_TRANSITION = "transition-all duration-300 ease-in-out";
+const BLUR_BACKDROP = "backdrop-blur-md bg-black/40";
+
 const PresentationMode = () => {
   const { presentationId } = useParams();
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -74,11 +78,17 @@ const PresentationMode = () => {
   useEffect(() => {
     try {
       if (presentationId) {
-        const decodedData = JSON.parse(atob(presentationId));
-        setSlides(decodedData.slides);
+        // Try to get presentation data from localStorage
+        const storedData = localStorage.getItem(`presentation_${presentationId}`);
+        if (!storedData) {
+          throw new Error("Presentation not found");
+        }
+        
+        const presentationData = JSON.parse(storedData);
+        setSlides(presentationData.slides);
       }
     } catch (error) {
-      console.error('Failed to decode presentation data:', error);
+      console.error('Failed to load presentation data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -220,38 +230,42 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
     <div 
       ref={presentationRef}
       className={cn(
-        "min-h-screen bg-black relative overflow-hidden",
+        "min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden",
         isFullscreen && "h-screen w-screen"
       )}
     >
       {/* Current Slide */}
       <div className={cn(
-        "h-full flex items-center justify-center p-4",
-        isChatOpen && "mr-[400px]"
+        "h-full flex items-center justify-center p-8",
+        isChatOpen && "mr-[400px]",
+        SLIDE_TRANSITION
       )}>
         <div className={cn(
-          "w-full aspect-[16/9] bg-white relative rounded-lg overflow-hidden",
-          isFullscreen ? "max-h-screen" : "max-w-7xl"
+          "w-full aspect-[16/9] bg-white relative rounded-2xl overflow-hidden shadow-2xl",
+          isFullscreen ? "max-h-screen" : "max-w-7xl",
+          SLIDE_TRANSITION
         )}>
           {slides[currentIndex].imageUrl && (
             <div className="absolute inset-0">
               <img
                 src={slides[currentIndex].imageUrl}
                 alt=""
-                className="w-full h-full object-cover opacity-10"
+                className="w-full h-full object-cover opacity-15 transform scale-105 transition-transform duration-1000"
               />
             </div>
           )}
           <div className="relative z-10 h-full flex flex-col items-center justify-center p-16 text-center">
             <h2 className={cn(
-              "font-bold mb-8 tracking-tight",
-              isFullscreen ? "text-7xl" : "text-6xl"
+              "font-bold mb-12 tracking-tight bg-gradient-to-r from-gray-900 to-gray-800 bg-clip-text text-transparent",
+              isFullscreen ? "text-7xl" : "text-6xl",
+              SLIDE_TRANSITION
             )}>
               {slides[currentIndex].title}
             </h2>
             <p className={cn(
               "text-gray-700 leading-relaxed max-w-4xl",
-              isFullscreen ? "text-3xl" : "text-2xl"
+              isFullscreen ? "text-3xl" : "text-2xl",
+              SLIDE_TRANSITION
             )}>
               {slides[currentIndex].body}
             </p>
@@ -261,16 +275,19 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
 
       {/* Research Chat Sidebar */}
       <div className={cn(
-        "fixed top-0 right-0 h-full w-[400px] bg-white/10 backdrop-blur-lg transform transition-transform duration-300",
+        "fixed top-0 right-0 h-full w-[400px] bg-black/30 backdrop-blur-2xl border-l border-white/10 transform transition-transform duration-500 ease-in-out shadow-2xl",
         !isChatOpen && "translate-x-full"
       )}>
-        <div className="h-full flex flex-col p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Research Assistant</h3>
+        <div className="h-full flex flex-col p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-5 w-5 text-orange-400" />
+              <h3 className="text-lg font-semibold text-white">Research Assistant</h3>
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={() => setIsChatOpen(false)}
             >
               <X className="h-4 w-4" />
@@ -278,39 +295,39 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
           </div>
 
           <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-3" ref={chatScrollRef}>
+            <div className="space-y-4" ref={chatScrollRef}>
               {messages.map((message, index) => (
                 <div
                   key={index}
                   className={cn(
-                    "p-2 rounded-lg",
+                    "p-3 rounded-xl transition-all duration-200",
                     message.role === 'user' 
-                      ? "bg-orange-500/20 ml-12" 
-                      : "bg-white/10 mr-12"
+                      ? "bg-orange-500/20 ml-12 hover:bg-orange-500/30" 
+                      : "bg-white/10 mr-12 hover:bg-white/20"
                   )}
                 >
-                  <p className="text-sm text-white leading-relaxed">{message.content}</p>
+                  <p className="text-sm text-white/90 leading-relaxed">{message.content}</p>
                 </div>
               ))}
               {streamingMessage && (
-                <div className="bg-white/10 mr-12 p-2 rounded-lg">
-                  <p className="text-sm text-white leading-relaxed">{streamingMessage}</p>
+                <div className="bg-white/10 mr-12 p-3 rounded-xl">
+                  <p className="text-sm text-white/90 leading-relaxed">{streamingMessage}</p>
                 </div>
               )}
               {isProcessing && !streamingMessage && (
-                <div className="flex justify-center p-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                <div className="flex justify-center p-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-orange-400" />
                 </div>
               )}
             </div>
           </ScrollArea>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-6">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a brief question..."
-              className="min-h-[60px] bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm"
+              className="min-h-[60px] bg-white/5 border-white/10 text-white placeholder:text-white/30 text-sm rounded-xl resize-none focus:ring-orange-400/30"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -318,14 +335,21 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
                 }
               }}
             />
-            <Button
-              className="self-end bg-orange-500 hover:bg-orange-600"
-              size="icon"
-              disabled={isProcessing || !input.trim()}
-              onClick={handleSendMessage}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+            <div className="flex justify-end mt-2">
+              <Button
+                className="bg-orange-500/80 hover:bg-orange-500 text-white"
+                size="sm"
+                disabled={isProcessing || !input.trim()}
+                onClick={handleSendMessage}
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                <span className="ml-2">Send</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -333,30 +357,33 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
       {/* Controls */}
       <div
         className={cn(
-          "fixed bottom-0 left-0 transition-all duration-300",
+          "fixed bottom-8 left-1/2 -translate-x-1/2 transition-all duration-500",
           isChatOpen ? "right-[400px]" : "right-0",
-          "p-4",
-          !isControlsVisible && "opacity-0 pointer-events-none"
+          !isControlsVisible && "translate-y-full opacity-0"
         )}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between bg-black/50 text-white rounded-lg p-4 backdrop-blur-sm">
-          <div className="flex items-center gap-4">
+        <div className={cn(
+          "max-w-4xl mx-auto flex items-center justify-between rounded-2xl p-4",
+          BLUR_BACKDROP,
+          "border border-white/10 shadow-xl"
+        )}>
+          <div className="flex items-center gap-6">
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
               disabled={currentIndex === 0}
             >
               <ChevronLeft className="h-6 w-6" />
             </Button>
-            <span className="text-sm">
-              Slide {currentIndex + 1} of {slides.length}
+            <span className="text-sm font-medium text-white/70">
+              {currentIndex + 1} / {slides.length}
             </span>
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/20"
+              className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={() => setCurrentIndex(prev => Math.min(slides.length - 1, prev + 1))}
               disabled={currentIndex === slides.length - 1}
             >
@@ -368,69 +395,55 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
             <Button
               variant="ghost"
               size="sm"
-              className="text-white hover:bg-white/20"
+              className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={toggleFullscreen}
             >
               {isFullscreen ? (
-                <>
-                  <Minimize2 className="h-4 w-4 mr-2" />
-                  Exit Fullscreen
-                </>
+                <Minimize2 className="h-4 w-4" />
               ) : (
-                <>
-                  <Maximize2 className="h-4 w-4 mr-2" />
-                  Enter Fullscreen
-                </>
+                <Maximize2 className="h-4 w-4" />
               )}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="text-white hover:bg-white/20"
+              className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={() => setIsControlsVisible(prev => !prev)}
             >
               {isControlsVisible ? (
-                <>
-                  <EyeOff className="h-4 w-4 mr-2" />
-                  Hide Controls
-                </>
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Show Controls
-                </>
+                <Eye className="h-4 w-4" />
               )}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="text-white hover:bg-white/20"
+              className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={() => setIsChatOpen(prev => !prev)}
             >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              {isChatOpen ? "Close Chat" : "Research Chat"}
+              <MessageSquare className="h-4 w-4" />
             </Button>
-            <div className="text-sm text-white/60 hidden lg:block">
-              Press <kbd className="px-2 py-1 bg-white/20 rounded">→</kbd> or <kbd className="px-2 py-1 bg-white/20 rounded">Space</kbd> for next slide
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Presenter Notes (if available) */}
+      {/* Presenter Notes */}
       {slides[currentIndex].notes && (
         <div className={cn(
-          "fixed left-4 bg-black/50 text-white p-4 rounded-lg backdrop-blur-sm transition-all duration-300",
-          isChatOpen ? "right-[416px]" : "right-4",
-          "max-w-2xl mx-auto",
-          isFullscreen ? "bottom-28" : "bottom-20",
-          !isControlsVisible && "opacity-0"
+          "fixed left-8 max-w-2xl mx-auto rounded-2xl",
+          BLUR_BACKDROP,
+          "border border-white/10 shadow-xl p-6",
+          isChatOpen ? "right-[416px]" : "right-8",
+          isFullscreen ? "bottom-32" : "bottom-28",
+          !isControlsVisible && "opacity-0 translate-y-full",
+          CONTROL_TRANSITION
         )}>
-          <div className="flex items-center gap-2 mb-2">
-            <Presentation className="h-4 w-4" />
-            <span className="font-medium">Presenter Notes</span>
+          <div className="flex items-center gap-3 mb-3">
+            <Presentation className="h-5 w-5 text-orange-400" />
+            <span className="font-medium text-white">Presenter Notes</span>
           </div>
-          <p className="text-sm">{slides[currentIndex].notes}</p>
+          <p className="text-sm text-white/80 leading-relaxed">{slides[currentIndex].notes}</p>
         </div>
       )}
     </div>

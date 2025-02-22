@@ -9,11 +9,27 @@ export const SlideContent = z.object({
   ai_image_description: z.string().optional()
 });
 
-// Theme schema
+// Theme schema with expanded styling options
 export const ThemeSchema = z.object({
   primary: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
   secondary: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
   background: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  text: z.object({
+    heading: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+    body: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+    muted: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color")
+  }),
+  fontSize: z.object({
+    title: z.string(),
+    heading: z.string(),
+    body: z.string(),
+    small: z.string()
+  }).optional(),
+  spacing: z.object({
+    content: z.string(),
+    controls: z.string()
+  }).optional()
 });
 
 // Presentation schema
@@ -64,9 +80,19 @@ export const openAIResponseSchema = {
         properties: {
           primary: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
           secondary: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
-          background: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" }
+          background: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
+          accent: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
+          text: {
+            type: "object",
+            properties: {
+              heading: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
+              body: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
+              muted: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" }
+            },
+            required: ["heading", "body", "muted"]
+          }
         },
-        required: ["primary", "secondary", "background"]
+        required: ["primary", "secondary", "background", "accent", "text"]
       }
     },
     required: ["title", "slides"]
