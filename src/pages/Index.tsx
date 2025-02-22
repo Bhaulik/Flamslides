@@ -202,11 +202,6 @@ const Index = () => {
       return;
     }
 
-    const openai = new OpenAI({
-      apiKey,
-      dangerouslyAllowBrowser: true
-    });
-
     try {
       logger.info("Validating input data");
       const validatedInput = PresentationRequest.parse(formData);
@@ -214,6 +209,11 @@ const Index = () => {
       
       setLoadingMessage("Creating engaging presentation content with ChatGPT...");
       logger.info("Sending request to OpenAI");
+
+      const openai = new OpenAI({
+        apiKey,
+        dangerouslyAllowBrowser: true
+      });
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4-turbo-preview",
@@ -236,16 +236,15 @@ Please provide the response in the following JSON format:
   "theme": {
     "primary": "#hex",
     "secondary": "#hex",
-    "background": "#hex"
+    "background": "#hex",
+    "accent": "#hex",
+    "text": {
+      "heading": "#hex",
+      "body": "#hex",
+      "muted": "#hex"
+    }
   }
-}
-
-For the ai_image_description in each slide:
-- Be specific about visual elements
-- Include style preferences (modern, minimalist, etc.)
-- Describe the mood and atmosphere
-- Focus on professional and presentation-appropriate imagery
-- Avoid text or complex diagrams as they will be handled by the slide content`
+}`
           },
           {
             role: "user",
