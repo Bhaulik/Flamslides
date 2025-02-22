@@ -19,6 +19,12 @@ import {
   Loader2,
   X
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -403,62 +409,107 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
           "border border-white/10 shadow-xl"
         )}>
           <div className="flex items-center gap-6">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-              disabled={currentIndex === 0}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                    disabled={currentIndex === 0}
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Previous Slide</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <span className="text-sm font-medium text-white/70">
               {currentIndex + 1} / {slides.length}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={() => setCurrentIndex(prev => Math.min(slides.length - 1, prev + 1))}
-              disabled={currentIndex === slides.length - 1}
-            >
-              <ChevronRight className="h-6 w-6" />
-            </Button>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => setCurrentIndex(prev => Math.min(slides.length - 1, prev + 1))}
+                    disabled={currentIndex === slides.length - 1}
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Next Slide</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={toggleFullscreen}
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={() => setIsControlsVisible(prev => !prev)}
-            >
-              {isControlsVisible ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={() => setIsChatOpen(prev => !prev)}
-            >
-              <MessageSquare className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={toggleFullscreen}
+                  >
+                    {isFullscreen ? (
+                      <Minimize2 className="h-4 w-4" />
+                    ) : (
+                      <Maximize2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => setIsControlsVisible(prev => !prev)}
+                  >
+                    {isControlsVisible ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isControlsVisible ? "Hide Controls" : "Show Controls"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => setIsChatOpen(prev => !prev)}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isChatOpen ? "Close Chat" : "Open Chat"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
