@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { SlideManager } from "@/components/SlideManager";
 import { SlideEditor } from "@/components/SlideEditor";
 import { exportToPowerPoint } from "@/lib/export";
+import LoadingDialog from '../components/LoadingDialog';
 
 const sampleSlides: Slide[] = [
   {
@@ -488,14 +489,33 @@ Return the presentation in JSON format as specified.`
   return (
     <div className="min-h-screen flex flex-col gap-8 bg-gradient-to-br from-orange-50 to-red-50 p-8">
       {/* Title Area */}
-      <div className={cn("w-full text-center py-12", CARD_STYLES)}>
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <Flame className="h-10 w-10 text-orange-500" />
-          <h1 className={cn("text-5xl font-bold", GRADIENT_TEXT)}>
-            FlamSlides
-          </h1>
+      <div className={cn("w-full text-center py-12 flame-background", CARD_STYLES)}>
+        <div className="particles">
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
         </div>
-        <p className="text-lg text-gray-600">Create stunning presentations with AI-powered content generation</p>
+        <div className="header-content">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Flame className="h-10 w-10 text-yellow-300" />
+            <h1 className="text-5xl font-bold text-white">
+              FlamSlides
+            </h1>
+          </div>
+          <p className="text-lg text-yellow-100">Create stunning presentations with AI-powered content generation</p>
+        </div>
       </div>
 
       <div className="w-full max-w-6xl mx-auto grid grid-cols-[1fr_300px] gap-8">
@@ -750,6 +770,7 @@ Return the presentation in JSON format as specified.`
           </>
         )}
       </div>
+      {isGenerating && <LoadingDialog />}
     </div>
   );
 };
