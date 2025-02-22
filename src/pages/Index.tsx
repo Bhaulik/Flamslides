@@ -694,6 +694,7 @@ Return the presentation in JSON format as specified.`
                   currentSlide={currentSlide}
                   onSlideSelect={setCurrentSlide}
                   isGenerating={isGenerating}
+                  loadingMessage={loadingMessage}
                   onGenerateImage={async (description) => {
                     setLoadingMessage(`Generating image...`);
                     setIsGenerating(true);

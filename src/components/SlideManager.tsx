@@ -23,7 +23,9 @@ import {
   X,
   Save,
   MessageSquare,
-  Send
+  Send,
+  Sparkles,
+  Wand2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -63,6 +65,7 @@ interface SlideManagerProps {
   onSlideSelect: (index: number) => void;
   isGenerating?: boolean;
   onGenerateImage?: (description: string) => Promise<string>;
+  loadingMessage?: string;
 }
 
 export const SlideManager = ({
@@ -71,7 +74,8 @@ export const SlideManager = ({
   currentSlide,
   onSlideSelect,
   isGenerating = false,
-  onGenerateImage
+  onGenerateImage,
+  loadingMessage = ""
 }: SlideManagerProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
@@ -320,6 +324,36 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
 
   return (
     <div className={cn("space-y-2", CARD_STYLES, "p-4")}>
+      {/* Loading Dialog */}
+      <Dialog open={isGenerating} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center justify-center py-8 space-y-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-600 rounded-full animate-ping opacity-20"></div>
+              <div className="relative bg-gradient-to-r from-orange-500 to-red-600 p-4 rounded-full text-white">
+                <Wand2 className="h-8 w-8 animate-pulse" />
+              </div>
+            </div>
+            
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-semibold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+                {loadingMessage || "Generating your slideshow..."}
+              </h3>
+              <p className="text-sm text-gray-500">Please wait while we work our magic</p>
+            </div>
+
+            <div className="w-full max-w-xs bg-gray-100 rounded-full h-2 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-orange-500 to-red-600 w-1/2 animate-[slide_2s_ease-in-out_infinite]"></div>
+            </div>
+
+            <div className="flex gap-2 items-center text-sm text-gray-500">
+              <Sparkles className="h-4 w-4 text-orange-500 animate-pulse" />
+              <span>Crafting beautiful slides</span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold">Slides</h3>
@@ -415,13 +449,16 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
                 isGenerating && "animate-pulse"
               )} 
             >
-              <div className="flex items-center justify-between">
-                <div onClick={() => onSlideSelect(index)}>
-                  <h4 className="font-medium text-base truncate">{slide.title}</h4>
-                  <p className="text-sm text-gray-500 line-clamp-1">{slide.body}</p>
+              <div className="flex items-center gap-4">
+                <div 
+                  className="flex-1 min-w-0 cursor-pointer" 
+                  onClick={() => onSlideSelect(index)}
+                >
+                  <h4 className="font-medium text-base truncate max-w-[300px]">{slide.title}</h4>
+                  <p className="text-sm text-gray-500 line-clamp-1 max-w-[400px]">{slide.body}</p>
                 </div>
                 
-                <div className="flex items-center gap-0.5 ml-2">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
