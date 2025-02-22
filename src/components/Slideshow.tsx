@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Slide } from "@/types/slide";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, Maximize2, Minimize2 } from "lucide-react";
 
 interface SlideshowProps {
   slides: Slide[];
-  autoPlayInterval?: number;
+  autoPlayInterval?: number | null;
   className?: string;
   currentSlide?: number;
   onSlideChange?: (index: number) => void;
@@ -14,13 +14,24 @@ interface SlideshowProps {
 
 export const Slideshow = ({
   slides,
-  autoPlayInterval = 5000,
+  autoPlayInterval = null,
   className,
   currentSlide,
   onSlideChange,
 }: SlideshowProps) => {
   const [currentIndex, setCurrentIndex] = useState(currentSlide || 0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const slideshowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === slideshowRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     if (currentSlide !== undefined && currentSlide !== currentIndex) {
@@ -29,7 +40,7 @@ export const Slideshow = ({
   }, [currentSlide]);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !autoPlayInterval) return;
 
     const interval = setInterval(() => {
       const nextIndex = (currentIndex + 1) % slides.length;
@@ -63,11 +74,27 @@ export const Slideshow = ({
     setIsPlaying(!isPlaying);
   };
 
+  const toggleFullscreen = async () => {
+    try {
+      if (!isFullscreen) {
+        await slideshowRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.error('Fullscreen error:', error);
+    }
+  };
+
   return (
-    <div className={cn(
-      "relative w-full max-w-4xl mx-auto aspect-[16/9] bg-white rounded-lg shadow-lg overflow-hidden",
-      className
-    )}>
+    <div 
+      ref={slideshowRef}
+      className={cn(
+        "relative w-full max-w-4xl mx-auto aspect-[16/9] bg-white rounded-lg shadow-lg overflow-hidden",
+        isFullscreen && "max-w-none rounded-none h-screen",
+        className
+      )}
+    >
       <div className="absolute inset-0 p-8 flex flex-col justify-center">
         {slides.map((slide, index) => (
           <div
@@ -129,18 +156,33 @@ export const Slideshow = ({
           <ChevronRight className="h-6 w-6" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-black/10 absolute right-4"
-          onClick={togglePlayPause}
-        >
-          {isPlaying ? (
-            <Pause className="h-4 w-4" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-        </Button>
+        <div className="absolute right-4 flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full hover:bg-black/10"
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full hover:bg-black/10"
+            onClick={togglePlayPause}
+          >
+            {isPlaying ? (
+              <Pause className="h-4 w-4" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

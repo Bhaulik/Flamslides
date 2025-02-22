@@ -1,10 +1,11 @@
 # 🔥 Flamslides - AI-Powered Presentation Generator
 
-Flamslides is a modern web application that leverages OpenAI's GPT models to automatically generate and refine beautiful presentations. Create engaging slides in seconds with the power of AI!
+Flamslides is a modern web application that leverages OpenAI's GPT-4 and DALL-E 3 models to automatically generate and refine beautiful presentations. Create engaging slides in seconds with the power of AI!
 
 ## ✨ Features
 
-- **AI-Powered Slide Generation**: Generate professional presentations from just a topic and description
+- **AI-Powered Slide Generation**: Generate professional presentations from just a topic and description using GPT-4
+- **DALL-E 3 Image Generation**: Create stunning, presentation-ready visuals automatically
 - **Interactive Chat Refinement**: Fine-tune your slides through a chat interface
 - **Real-time Preview**: See your slides come to life as you make changes
 - **Modern UI Components**: Built with Shadcn UI for a beautiful, responsive experience
@@ -15,15 +16,19 @@ Flamslides is a modern web application that leverages OpenAI's GPT models to aut
 - **Frontend**: React + TypeScript + Vite
 - **UI Components**: Shadcn UI (based on Radix UI)
 - **Styling**: Tailwind CSS
-- **AI Integration**: OpenAI GPT-3.5
-- **State Management**: React Query
+- **AI Integration**: 
+  - OpenAI GPT-4 for content generation
+  - DALL-E 3 for image generation
+- **State Management**: React Hooks
+- **Validation**: Zod
+- **Logging**: Custom logger implementation
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-- OpenAI API key
+- OpenAI API key with access to GPT-4 and DALL-E 3
 
 ### Installation
 
@@ -51,10 +56,20 @@ Flamslides is a modern web application that leverages OpenAI's GPT models to aut
 ## 🎯 Usage
 
 1. Enter your presentation topic and provide a brief description
-2. Choose the number of slides you want to generate
-3. Click "Generate Slides" to create your presentation
-4. Use the chat interface to refine individual slides
-5. Navigate through your presentation using the controls
+2. Choose the number of slides and presentation duration
+3. Select your preferred style (professional, casual, or academic)
+4. Click "Generate Slides" to create your presentation with:
+   - GPT-4 generated content
+   - DALL-E 3 generated images
+   - Professional styling and layout
+5. Use the chat interface to refine individual slides
+6. Navigate through your presentation using the controls
+
+## 🔒 Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_OPENAI_API_KEY` | Your OpenAI API key with access to GPT-4 and DALL-E 3 |
 
 ## 🤝 Contributing
 
@@ -74,3 +89,49 @@ This project is built with .
 - React
 - shadcn-ui
 - Tailwind CSS
+
+## Environment Setup
+
+1. Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+
+2. Get your API keys:
+   - OpenAI API Key: Get from [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Replicate API Key: Get from [Replicate Account](https://replicate.com/account/api-tokens)
+
+3. Add your API keys to `.env`:
+```env
+VITE_OPENAI_API_KEY=your_openai_api_key_here
+VITE_REPLICATE_API_KEY=your_replicate_api_key_here
+```
+
+## Development
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start the development server:
+```bash
+npm run dev
+```
+
+## Features
+
+- AI-powered presentation generation
+- Smart image generation for slides
+- Real-time customization
+- Professional themes and layouts
+- Interactive chat interface
+
+## Tech Stack
+
+- Next.js
+- TypeScript
+- OpenAI API
+- Replicate API (Google Imagen)
+- Tailwind CSS
+- Zod for validation
