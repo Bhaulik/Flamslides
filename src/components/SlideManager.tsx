@@ -198,7 +198,7 @@ export const SlideManager = ({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="h-[calc(100vh-24rem)] overflow-y-auto pr-2 space-y-2 scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent hover:scrollbar-thumb-orange-300">
         {slides.map((slide, index) => (
           <div
             key={index}
