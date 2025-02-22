@@ -63,9 +63,24 @@ const sampleSlides: Slide[] = [
 ];
 
 const steps = [
-  { number: 1, title: "Enter Topic & Details", description: "Provide the main topic and description for your presentation" },
-  { number: 2, title: "Generate Slides", description: "AI will create engaging slides based on your input" },
-  { number: 3, title: "Refine Content", description: "Use the chat interface to perfect each slide" }
+  { 
+    number: 1, 
+    title: "Enter Topic & Details", 
+    description: "Provide the main topic and description for your presentation",
+    icon: "✏️"
+  },
+  { 
+    number: 2, 
+    title: "Generate Slides", 
+    description: "AI will create engaging slides based on your input",
+    icon: "🤖"
+  },
+  { 
+    number: 3, 
+    title: "Refine Content", 
+    description: "Use the chat interface to perfect each slide",
+    icon: "✨"
+  }
 ];
 
 const systemPrompt = `You are a presentation expert that creates engaging and informative slides.
@@ -184,7 +199,7 @@ const Index = () => {
     style: "professional"
   });
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showSteps, setShowSteps] = useState(true);
+  const [currentStep, setCurrentStep] = useState(1);
   const [loadingMessage, setLoadingMessage] = useState("");
   const { toast } = useToast();
   const [presentationId, setPresentationId] = useState<string | null>(null);
@@ -193,7 +208,7 @@ const Index = () => {
     e.preventDefault();
     logger.info("Starting slide generation", { formData });
     setIsGenerating(true);
-    setShowSteps(false);
+    setCurrentStep(2);
     setLoadingMessage("Initializing slide generation...");
 
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -316,6 +331,7 @@ Return the presentation in JSON format as specified.`
       });
 
       setSlides(processedSlides);
+      setCurrentStep(3);
       toast({
         title: "Slides Generated",
         description: `Created ${processedSlides.length} slides with AI-generated images.`,
@@ -341,6 +357,7 @@ Return the presentation in JSON format as specified.`
           variant: "destructive",
         });
       }
+      setCurrentStep(1);
     } finally {
       setIsGenerating(false);
       setLoadingMessage("");
@@ -626,22 +643,60 @@ Return the presentation in JSON format as specified.`
           </form>
         </div>
 
-        {/* Steps Section - Now Vertical */}
-        {showSteps && (
-          <div className={cn("space-y-4", CARD_STYLES)}>
-            {steps.map((step) => (
-              <div key={step.number} className={cn("p-6 relative", CARD_STYLES)}>
-                <div className="absolute -left-4 flex items-center justify-center w-8 h-8 text-white bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-lg font-bold text-lg">
-                  {step.number}
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{step.description}</p>
+        {/* Steps Section - Always visible */}
+        <div className={cn("space-y-4", CARD_STYLES)}>
+          {steps.map((step) => (
+            <div 
+              key={step.number}
+              className={cn(
+                "relative flex items-start gap-6 p-6 rounded-xl transition-all duration-300",
+                step.number === currentStep 
+                  ? "bg-orange-50/80" 
+                  : step.number < currentStep 
+                    ? "bg-green-50/80" 
+                    : "bg-white/50 hover:bg-white/70",
+                "group"
+              )}
+            >
+              {/* Step Number */}
+              <div className="flex-shrink-0">
+                <div className={cn(
+                  "flex items-center justify-center w-12 h-12 rounded-xl text-white font-bold text-xl shadow-lg group-hover:scale-110 transition-transform duration-300",
+                  step.number === currentStep 
+                    ? "bg-gradient-to-br from-orange-500 to-red-600"
+                    : step.number < currentStep
+                      ? "bg-gradient-to-br from-green-500 to-green-600"
+                      : "bg-gradient-to-br from-gray-400 to-gray-500"
+                )}>
+                  {step.number < currentStep ? "✓" : step.icon}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+              
+              {/* Step Content */}
+              <div className="flex-1">
+                <h3 className={cn(
+                  "text-xl font-semibold mb-2",
+                  step.number === currentStep ? "text-orange-800" : "text-gray-800"
+                )}>
+                  {step.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {step.description}
+                </p>
+              </div>
+
+              {/* Connector Line */}
+              {step.number !== steps.length && (
+                <div className={cn(
+                  "absolute left-[2.35rem] top-[4.5rem] w-[2px] h-8",
+                  step.number < currentStep 
+                    ? "bg-gradient-to-b from-green-500/50 to-green-600/50"
+                    : "bg-gradient-to-b from-orange-500/50 to-red-600/50"
+                )} />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Loading Indicator */}
@@ -766,6 +821,30 @@ Return the presentation in JSON format as specified.`
             </Dialog>
           </>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-16 pb-8 text-center text-sm text-gray-500">
+        <p>
+          Maintained and developed by{' '}
+          <a 
+            href="https://github.com/Loopy178" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-orange-600 hover:text-orange-700 transition-colors"
+          >
+            Brijesh Patel
+          </a>
+          {' & '}
+          <a 
+            href="https://github.com/bhaulik" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-orange-600 hover:text-orange-700 transition-colors"
+          >
+            Bhaulik Patel
+          </a>
+        </p>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 # 🔥 Flamslides - AI-Powered Presentation Generator
 
 Flamslides is a modern web application that leverages OpenAI's GPT-4 and DALL-E 3 models to automatically generate and refine beautiful presentations. Create engaging slides in seconds with the power of AI!
+Developed and maintained by Brijesh Patel & Bhaulik Patel
 
 ## ✨ Features
 
@@ -22,6 +23,8 @@ Flamslides is a modern web application that leverages OpenAI's GPT-4 and DALL-E 
 - **State Management**: React Hooks
 - **Validation**: Zod
 - **Logging**: Custom logger implementation
+- **PowerPoint Generation**: PptxGenJS
+- **QR Code**: QRCode.react
 
 ## 🚀 Getting Started
 
@@ -116,3 +119,55 @@ npm install
 ```bash
 npm run dev
 ```
+
+## 📚 Open Source Libraries
+
+This project stands on the shoulders of giants. We're grateful to these amazing open-source projects:
+
+- [PptxGenJS](https://github.com/gitbrent/PptxGenJS/) - Powers our PowerPoint export functionality with a robust JavaScript API
+- [Shadcn UI](https://ui.shadcn.com/) - Beautifully designed components built with Radix UI and Tailwind CSS
+- [QRCode.react](https://github.com/zpao/qrcode.react) - React component to generate QR codes
+- [Lucide React](https://lucide.dev/) - Beautiful & consistent icon pack
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Zod](https://github.com/colinhacks/zod) - TypeScript-first schema validation
+
+## 🚀 Future Improvements
+
+### Server-Side Storage Enhancement
+Currently, presentations are stored in the browser's localStorage, which has limitations:
+- Data is only accessible on the device that created it
+- Storage size is limited
+- No sharing capabilities across devices
+
+Planned improvements:
+```typescript
+// Future Implementation
+const generatePresentationId = async () => {
+  const presentationData = {
+    timestamp: Date.now(),
+    slides: slides.map(slide => ({
+      title: slide.title,
+      body: slide.body,
+      notes: slide.notes,
+      imageUrl: slide.imageUrl,
+      ai_image_description: slide.ai_image_description
+    }))
+  };
+
+  // Store presentation in database
+  const response = await fetch('/api/presentations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(presentationData)
+  });
+
+  return response.json();
+};
+```
+
+Benefits of server-side storage:
+- **Cross-device Access**: Access presentations from any device
+- **Improved Sharing**: Share presentations via URLs and QR codes
+- **Persistent Storage**: Data remains available after browser clear
+- **Better Security**: Implement proper authentication and authorization
+- **Collaboration Features**: Enable real-time collaboration (future)
