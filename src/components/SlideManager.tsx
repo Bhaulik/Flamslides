@@ -321,7 +321,12 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
   return (
     <div className={cn("space-y-2", CARD_STYLES, "p-4")}>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold">Slides</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Slides</h3>
+          <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
+            {slides.length}
+          </span>
+        </div>
         <div className="flex gap-2">
           <TooltipProvider>
             <Tooltip>
