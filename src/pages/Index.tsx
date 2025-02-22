@@ -115,6 +115,7 @@ const generateImage = async (prompt: string): Promise<string> => {
       throw new Error("OpenAI API key is missing");
     }
 
+    // First, generate the image with DALL-E
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -127,7 +128,8 @@ const generateImage = async (prompt: string): Promise<string> => {
         n: 1,
         size: "1792x1024",
         quality: "standard",
-        style: "natural"
+        style: "natural",
+        response_format: "b64_json" // Get base64 directly
       })
     });
 
@@ -143,11 +145,13 @@ const generateImage = async (prompt: string): Promise<string> => {
     const data = await response.json();
     logger.debug("DALL-E image generated successfully", { data });
 
-    if (!data.data?.[0]?.url) {
-      throw new Error("No image URL in DALL-E response");
+    if (!data.data?.[0]?.b64_json) {
+      throw new Error("No image data in DALL-E response");
     }
 
-    return data.data[0].url;
+    // Return the base64 data directly
+    return `data:image/png;base64,${data.data[0].b64_json}`;
+
   } catch (error) {
     logger.error("Image generation failed", { error });
     
@@ -184,6 +188,7 @@ const Index = () => {
   const [showSteps, setShowSteps] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("");
   const { toast } = useToast();
+  const [presentationId, setPresentationId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,32 +390,85 @@ Return the presentation in JSON format as specified.`
   };
 
   const generatePresentationId = () => {
-    // Generate a shorter unique ID
-    const uniqueId = Math.random().toString(36).substring(2, 15);
-    
-    // Store the full presentation data in localStorage
-    const presentationData = {
-      timestamp: Date.now(),
-      slides: slides.map(slide => ({
-        ...slide,
-        id: Math.random().toString(36).substr(2, 9)
-      }))
-    };
-    localStorage.setItem(`presentation_${uniqueId}`, JSON.stringify(presentationData));
-    
-    return uniqueId;
+    try {
+      // Generate a shorter unique ID
+      const uniqueId = Math.random().toString(36).substring(2, 15);
+      
+      // Create presentation data
+      const presentationData = {
+        timestamp: Date.now(),
+        slides: slides.map(slide => ({
+          title: slide.title,
+          body: slide.body,
+          notes: slide.notes,
+          imageUrl: slide.imageUrl,
+          ai_image_description: slide.ai_image_description
+        }))
+      };
+
+      // Try storing complete data first
+      try {
+        localStorage.setItem(`presentation_${uniqueId}`, JSON.stringify(presentationData));
+        logger.info('Stored presentation data successfully', { id: uniqueId });
+        return uniqueId;
+      } catch (storageError) {
+        // If direct storage fails, try storing without images
+        logger.warn('Full storage failed, trying without images', { error: storageError });
+        
+        const minimalData = {
+          timestamp: Date.now(),
+          slides: slides.map(slide => ({
+            title: slide.title,
+            body: slide.body,
+            notes: slide.notes,
+            // Keep URLs but remove base64 data
+            imageUrl: slide.imageUrl?.startsWith('data:') ? null : slide.imageUrl
+          }))
+        };
+
+        localStorage.setItem(`presentation_${uniqueId}`, JSON.stringify(minimalData));
+        
+        toast({
+          title: "Limited Storage Mode",
+          description: "Images will be limited in presentation mode due to storage constraints.",
+        });
+        
+        return uniqueId;
+      }
+    } catch (error) {
+      logger.error('Failed to store presentation:', error);
+      toast({
+        title: "Storage Warning",
+        description: "Unable to store presentation data. Some features may be limited.",
+        variant: "destructive",
+      });
+      return Math.random().toString(36).substring(2, 15);
+    }
+  };
+
+  const handleGenerateQRCode = () => {
+    const id = generatePresentationId();
+    setPresentationId(id);
   };
 
   const handleStartPresentation = () => {
-    const presentationId = generatePresentationId();
-    window.open(`/present/${presentationId}`, '_blank');
+    const id = generatePresentationId();
+    window.open(`/present/${id}`, '_blank');
   };
 
   const handleExportPPT = async () => {
     try {
-      setLoadingMessage("Exporting to PowerPoint...");
       setIsGenerating(true);
-      const fileName = await exportToPowerPoint(slides, formData.topic || "FlamSlides Presentation");
+      setLoadingMessage("Starting PowerPoint export...");
+      
+      const fileName = await exportToPowerPoint(
+        slides, 
+        formData.topic || "FlamSlides Presentation",
+        (progress) => {
+          setLoadingMessage(progress.status);
+        }
+      );
+      
       toast({
         title: "Export Successful",
         description: `Presentation saved as ${fileName}`,
@@ -419,7 +477,7 @@ Return the presentation in JSON format as specified.`
       console.error("Export failed:", error);
       toast({
         title: "Export Failed",
-        description: "Failed to export presentation. Please try again.",
+        description: error.message || "Failed to export presentation. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -675,7 +733,13 @@ Return the presentation in JSON format as specified.`
             </div>
 
             {/* QR Code Dialog */}
-            <Dialog>
+            <Dialog onOpenChange={(open) => {
+              if (open) {
+                handleGenerateQRCode();
+              } else {
+                setPresentationId(null);
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
@@ -691,13 +755,15 @@ Return the presentation in JSON format as specified.`
                   <DialogTitle className={GRADIENT_TEXT}>Share Presentation</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center justify-center p-8 space-y-6">
-                  <QRCodeSVG
-                    value={`${window.location.origin}/present/${generatePresentationId()}`}
-                    size={256}
-                    level="M"
-                    includeMargin
-                    className="border-8 border-white rounded-2xl shadow-xl"
-                  />
+                  {presentationId && (
+                    <QRCodeSVG
+                      value={`${window.location.origin}/present/${presentationId}`}
+                      size={256}
+                      level="M"
+                      includeMargin
+                      className="border-8 border-white rounded-2xl shadow-xl"
+                    />
+                  )}
                   <p className="text-sm text-gray-600 text-center">
                     Scan this QR code to follow along with the presentation on your device
                   </p>

@@ -76,22 +76,53 @@ const PresentationMode = () => {
   }, []);
 
   useEffect(() => {
-    try {
-      if (presentationId) {
-        // Try to get presentation data from localStorage
-        const storedData = localStorage.getItem(`presentation_${presentationId}`);
-        if (!storedData) {
-          throw new Error("Presentation not found");
+    const loadPresentation = async () => {
+      try {
+        if (presentationId) {
+          // Try to get presentation data from localStorage
+          const storedData = localStorage.getItem(`presentation_${presentationId}`);
+          if (!storedData) {
+            throw new Error("Presentation not found");
+          }
+          
+          const presentationData = JSON.parse(storedData);
+          const loadedSlides = presentationData.slides;
+
+          // Process slides to handle images
+          const processedSlides = await Promise.all(loadedSlides.map(async (slide) => {
+            if (!slide.imageUrl) return slide;
+
+            // If it's already a base64 image or a URL, use it directly
+            if (slide.imageUrl.startsWith('data:') || slide.imageUrl.startsWith('http')) {
+              return slide;
+            }
+
+            // If we need to fetch and convert URL to base64
+            try {
+              const response = await fetch(slide.imageUrl);
+              const blob = await response.blob();
+              const base64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+              });
+              return { ...slide, imageUrl: base64 };
+            } catch (error) {
+              console.error('Failed to load image:', error);
+              return slide;
+            }
+          }));
+
+          setSlides(processedSlides);
         }
-        
-        const presentationData = JSON.parse(storedData);
-        setSlides(presentationData.slides);
+      } catch (error) {
+        console.error('Failed to load presentation data:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load presentation data:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadPresentation();
   }, [presentationId]);
 
   useEffect(() => {
@@ -245,12 +276,16 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
           isFullscreen ? "max-h-screen" : "max-w-7xl",
           SLIDE_TRANSITION
         )}>
-          {slides[currentIndex].imageUrl && (
+          {slides[currentIndex]?.imageUrl && (
             <div className="absolute inset-0">
               <img
                 src={slides[currentIndex].imageUrl}
                 alt=""
                 className="w-full h-full object-cover opacity-15 transform scale-105 transition-transform duration-1000"
+                onError={(e) => {
+                  console.error('Image failed to load:', e);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
           )}
@@ -260,14 +295,14 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
               isFullscreen ? "text-7xl" : "text-6xl",
               SLIDE_TRANSITION
             )}>
-              {slides[currentIndex].title}
+              {slides[currentIndex]?.title}
             </h2>
             <p className={cn(
               "text-gray-700 leading-relaxed max-w-4xl",
               isFullscreen ? "text-3xl" : "text-2xl",
               SLIDE_TRANSITION
             )}>
-              {slides[currentIndex].body}
+              {slides[currentIndex]?.body}
             </p>
           </div>
         </div>
