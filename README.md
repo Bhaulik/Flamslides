@@ -13,6 +13,9 @@ Developed and maintained by Brijesh Patel & Bhaulik Patel
 
 ![image](https://github.com/user-attachments/assets/c08a4d29-b1da-407e-bb5b-a92e53710113)
 
+![image](https://github.com/user-attachments/assets/e3099bba-09b9-4a47-bd4f-6537ef8cc63d)
+
+
 
 ## ✨ Features
 
