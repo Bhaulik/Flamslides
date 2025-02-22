@@ -21,7 +21,9 @@ import {
   Loader2,
   Edit,
   X,
-  Save
+  Save,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -34,6 +36,8 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { SlideEditor } from '@/components/SlideEditor';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import OpenAI from 'openai';
 
 const CARD_STYLES = "bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-orange-100/20";
 
@@ -46,6 +50,11 @@ const ImageUploadSchema = z.object({
     .refine(file => file.size <= MAX_FILE_SIZE, 'Image must be less than 5MB')
     .refine(file => ALLOWED_IMAGE_TYPES.includes(file.type), 'Only .jpg, .png, .webp and .gif formats are supported'),
 });
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface SlideManagerProps {
   slides: Slide[];
@@ -70,6 +79,12 @@ export const SlideManager = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Update refs array when slides change
   useEffect(() => {
@@ -86,6 +101,13 @@ export const SlideManager = ({
       });
     }
   }, [currentSlide]);
+
+  // Scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages, streamingMessage]);
 
   const handleImageUpload = async (file: File, slideIndex: number) => {
     try {
@@ -225,6 +247,77 @@ export const SlideManager = ({
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isProcessing) return;
+
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (!apiKey) {
+      console.error('OpenAI API key is missing');
+      return;
+    }
+
+    const openai = new OpenAI({
+      apiKey,
+      dangerouslyAllowBrowser: true
+    });
+
+    const currentSlideContent = slides[currentSlide];
+    const userMessage = chatInput;
+    setChatInput('');
+    setIsProcessing(true);
+    setStreamingMessage("");
+
+    // Add user message immediately
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+
+    try {
+      const stream = await openai.chat.completions.create({
+        model: "gpt-4-turbo-preview",
+        messages: [
+          {
+            role: "system",
+            content: `You are a concise research assistant helping with a presentation. Current slide:
+Title: ${currentSlideContent.title}
+Content: ${currentSlideContent.body}
+Provide brief, focused responses (max 2-3 sentences) to help enhance the presentation.`
+          },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: "user", content: userMessage }
+        ],
+        temperature: 0.7,
+        stream: true,
+        max_tokens: 150
+      });
+
+      let fullMessage = "";
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        fullMessage += content;
+        setStreamingMessage(fullMessage);
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: fullMessage }]);
+      setStreamingMessage("");
+
+      // Update slide content with AI response
+      const newSlides = [...slides];
+      newSlides[currentSlide] = {
+        ...newSlides[currentSlide],
+        body: fullMessage.trim()
+      };
+      onSlidesChange(newSlides);
+      
+    } catch (error) {
+      console.error('Failed to get response:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "Sorry, I encountered an error. Please try again." 
+      }]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className={cn("space-y-2", CARD_STYLES, "p-4")}>
       <div className="flex items-center justify-between mb-2">
@@ -324,6 +417,25 @@ export const SlideManager = ({
                 </div>
                 
                 <div className="flex items-center gap-0.5 ml-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsChatOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Quick Edit</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -435,6 +547,84 @@ export const SlideManager = ({
           </div>
         ))}
       </div>
+
+      {/* Quick Chat Dialog */}
+      <Dialog open={isChatOpen} onOpenChange={(open) => {
+        if (!open) {
+          setMessages([]);
+          setChatInput('');
+          setStreamingMessage('');
+        }
+        setIsChatOpen(open);
+      }}>
+        <DialogContent className="w-[90vw] max-w-2xl p-6">
+          <DialogHeader>
+            <DialogTitle>AI Chat Assistant</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="bg-orange-50/50 rounded-lg p-4 border border-orange-100">
+              <h4 className="font-medium text-base mb-2">Current Slide Content</h4>
+              <p className="text-sm text-gray-600">{slides[currentSlide]?.body}</p>
+            </div>
+
+            <ScrollArea className="h-[300px] rounded-md border p-4">
+              <div className="space-y-4" ref={chatScrollRef}>
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "p-3 rounded-xl max-w-[80%] transition-all duration-200",
+                      message.role === 'user' 
+                        ? "bg-orange-500/20 ml-auto" 
+                        : "bg-gray-100"
+                    )}
+                  >
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                  </div>
+                ))}
+                {streamingMessage && (
+                  <div className="bg-gray-100 p-3 rounded-xl max-w-[80%]">
+                    <p className="text-sm leading-relaxed">{streamingMessage}</p>
+                  </div>
+                )}
+                {isProcessing && !streamingMessage && (
+                  <div className="flex justify-center p-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-orange-400" />
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            <div className="flex gap-2">
+              <Textarea
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask the AI to help improve your slide content..."
+                className="min-h-[80px] resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+              />
+              <Button
+                className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700 self-end"
+                size="icon"
+                onClick={handleSendMessage}
+                disabled={isProcessing || !chatInput.trim()}
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Slide Modal */}
       <Dialog open={editingSlideIndex !== null} onOpenChange={(open) => !open && handleCancelEdit()}>
