@@ -1,9 +1,15 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Slide } from '@/types/slide';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
   Plus, 
   Upload, 
@@ -12,10 +18,24 @@ import {
   MoveDown, 
   Trash2,
   FileUp,
-  Loader2
+  Loader2,
+  Edit,
+  X,
+  Save
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { SlideEditor } from '@/components/SlideEditor';
+
+const CARD_STYLES = "bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-orange-100/20";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -32,6 +52,8 @@ interface SlideManagerProps {
   onSlidesChange: (slides: Slide[]) => void;
   currentSlide: number;
   onSlideSelect: (index: number) => void;
+  isGenerating?: boolean;
+  onGenerateImage?: (description: string) => Promise<string>;
 }
 
 export const SlideManager = ({
@@ -39,10 +61,31 @@ export const SlideManager = ({
   onSlidesChange,
   currentSlide,
   onSlideSelect,
+  isGenerating = false,
+  onGenerateImage
 }: SlideManagerProps) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+  const [editingSlide, setEditingSlide] = useState<Slide | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Update refs array when slides change
+  useEffect(() => {
+    slideRefs.current = slideRefs.current.slice(0, slides.length);
+  }, [slides.length]);
+
+  // Scroll to current slide when it changes
+  useEffect(() => {
+    const currentSlideRef = slideRefs.current[currentSlide];
+    if (currentSlideRef) {
+      currentSlideRef.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }, [currentSlide]);
 
   const handleImageUpload = async (file: File, slideIndex: number) => {
     try {
@@ -158,32 +201,70 @@ export const SlideManager = ({
     }
   };
 
+  const handleStartEditing = (index: number) => {
+    setEditingSlideIndex(index);
+    setEditingSlide({ ...slides[index] }); // Create a copy for editing
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSlideIndex(null);
+    setEditingSlide(null);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingSlideIndex !== null && editingSlide) {
+      const newSlides = [...slides];
+      newSlides[editingSlideIndex] = editingSlide;
+      onSlidesChange(newSlides);
+      toast({
+        title: "Changes Saved",
+        description: "Your slide has been updated successfully.",
+      });
+      setEditingSlideIndex(null);
+      setEditingSlide(null);
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className={cn("space-y-2", CARD_STYLES, "p-4")}>
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold">Slides</h3>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileUp className="h-4 w-4" />
-            )}
-            <span className="ml-2">Import</span>
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={addNewSlide}
-          >
-            <Plus className="h-4 w-4" />
-            <span className="ml-2">Add Slide</span>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileUp className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Import Slides</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={addNewSlide}
+                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add New Slide</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <input
           type="file"
@@ -198,79 +279,198 @@ export const SlideManager = ({
         />
       </div>
 
-      <div className="h-[calc(100vh-24rem)] overflow-y-auto pr-2 space-y-2 scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent hover:scrollbar-thumb-orange-300">
+      <div className="h-[calc(100vh-32rem)] overflow-y-auto pr-2 space-y-1 scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent hover:scrollbar-thumb-orange-300">
         {slides.map((slide, index) => (
           <div
             key={index}
+            ref={el => slideRefs.current[index] = el}
             className={cn(
-              "flex items-center gap-3 p-3 rounded-lg border",
-              currentSlide === index ? "border-orange-500 bg-orange-50" : "border-gray-200"
+              "flex items-start gap-3 p-3 rounded-lg border relative overflow-hidden",
+              currentSlide === index ? "border-orange-500 bg-orange-50" : "border-gray-200",
+              isGenerating && "before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent before:animate-shimmer before:-translate-x-full"
             )}
           >
             <div
-              className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center overflow-hidden"
+              className={cn(
+                "w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0",
+                isGenerating && "animate-pulse"
+              )}
               onClick={() => onSlideSelect(index)}
             >
               {slide.imageUrl ? (
                 <img
                   src={slide.imageUrl}
                   alt=""
-                  className="w-full h-full object-cover"
+                  className={cn(
+                    "w-full h-full object-cover",
+                    isGenerating && "opacity-50"
+                  )}
                 />
               ) : (
                 <ImageIcon className="h-6 w-6 text-gray-400" />
               )}
             </div>
 
-            <div className="flex-1 min-w-0" onClick={() => onSlideSelect(index)}>
-              <h4 className="font-medium truncate">{slide.title}</h4>
-              <p className="text-sm text-gray-500 truncate">{slide.body}</p>
-            </div>
+            <div 
+              className={cn(
+                "flex-1 min-w-0",
+                isGenerating && "animate-pulse"
+              )} 
+            >
+              <div className="flex items-center justify-between">
+                <div onClick={() => onSlideSelect(index)}>
+                  <h4 className="font-medium text-base truncate">{slide.title}</h4>
+                  <p className="text-sm text-gray-500 line-clamp-1">{slide.body}</p>
+                </div>
+                
+                <div className="flex items-center gap-0.5 ml-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEditing(index);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit Slide</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
 
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    if (file) handleImageUpload(file, index);
-                  };
-                  input.click();
-                }}
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => moveSlide(index, 'up')}
-                disabled={index === 0}
-              >
-                <MoveUp className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => moveSlide(index, 'down')}
-                disabled={index === slides.length - 1}
-              >
-                <MoveDown className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeSlide(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0];
+                              if (file) handleImageUpload(file, index);
+                            };
+                            input.click();
+                          }}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Upload Image</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <div className="flex items-center border-l border-gray-200 ml-1 pl-1">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveSlide(index, 'up');
+                            }}
+                            disabled={index === 0}
+                          >
+                            <MoveUp className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Move Up</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveSlide(index, 'down');
+                            }}
+                            disabled={index === slides.length - 1}
+                          >
+                            <MoveDown className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Move Down</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSlide(index);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete Slide</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Edit Slide Modal */}
+      <Dialog open={editingSlideIndex !== null} onOpenChange={(open) => !open && handleCancelEdit()}>
+        <DialogContent className="w-[90vw] max-w-3xl p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-orange-100/20 flex flex-row items-center justify-between">
+            <DialogTitle>
+              Edit Slide {editingSlideIndex !== null ? editingSlideIndex + 1 : ''}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700"
+                onClick={handleSaveEdit}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
+          </DialogHeader>
+          {editingSlide && (
+            <div className="px-6 py-4">
+              <SlideEditor
+                slide={editingSlide}
+                onSlideUpdate={setEditingSlide}
+                onGenerateImage={onGenerateImage}
+                isGenerating={isGenerating}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }; 

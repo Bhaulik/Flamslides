@@ -613,7 +613,7 @@ Return the presentation in JSON format as specified.`
 
         {/* Steps Section - Now Vertical */}
         {showSteps && (
-          <div className="space-y-4">
+          <div className={cn("space-y-4", CARD_STYLES)}>
             {steps.map((step) => (
               <div key={step.number} className={cn("p-6 relative", CARD_STYLES)}>
                 <div className="absolute -left-4 flex items-center justify-center w-8 h-8 text-white bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-lg font-bold text-lg">
@@ -646,8 +646,8 @@ Return the presentation in JSON format as specified.`
       <div className="w-full max-w-[1600px] mx-auto">
         {slides.length > 0 && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
-              {/* Left Column - Slideshow and Editor */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column - Slideshow */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-2xl font-bold">Preview</h2>
@@ -678,38 +678,11 @@ Return the presentation in JSON format as specified.`
                 </div>
 
                 {/* Slideshow */}
-                <div>
+                <div className={cn(CARD_STYLES, "p-4")}>
                   <Slideshow 
                     slides={slides} 
                     currentSlide={currentSlide}
                     onSlideChange={setCurrentSlide}
-                  />
-                </div>
-
-                {/* Slide Editor */}
-                <div className={cn("p-4 rounded-xl mt-2", CARD_STYLES)}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Edit Current Slide</h3>
-                    <span className="text-sm font-medium px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
-                      Slide {currentSlide + 1} of {slides.length}
-                    </span>
-                  </div>
-                  
-                  <SlideEditor
-                    slide={slides[currentSlide]}
-                    onSlideUpdate={(updatedSlide) => handleSlideUpdate(currentSlide, updatedSlide)}
-                    onGenerateImage={async (description) => {
-                      setLoadingMessage(`Regenerating image for slide ${currentSlide + 1}...`);
-                      setIsGenerating(true);
-                      try {
-                        const newImageUrl = await generateImage(description);
-                        return newImageUrl;
-                      } finally {
-                        setIsGenerating(false);
-                        setLoadingMessage("");
-                      }
-                    }}
-                    isGenerating={isGenerating}
                   />
                 </div>
               </div>
@@ -721,6 +694,18 @@ Return the presentation in JSON format as specified.`
                   onSlidesChange={setSlides}
                   currentSlide={currentSlide}
                   onSlideSelect={setCurrentSlide}
+                  isGenerating={isGenerating}
+                  onGenerateImage={async (description) => {
+                    setLoadingMessage(`Generating image...`);
+                    setIsGenerating(true);
+                    try {
+                      const newImageUrl = await generateImage(description);
+                      return newImageUrl;
+                    } finally {
+                      setIsGenerating(false);
+                      setLoadingMessage("");
+                    }
+                  }}
                 />
 
                 <ChatArea 
