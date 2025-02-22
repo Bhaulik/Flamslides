@@ -1,0 +1,21 @@
+{
+  "name": "FlamSlides",
+  "short_name": "FlamSlides",
+  "description": "AI-Powered Presentation Generator",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+} 

@@ -25,7 +25,8 @@ import {
   MessageSquare,
   Send,
   Sparkles,
-  Wand2
+  Wand2,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -88,6 +89,7 @@ export const SlideManager = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
+  const [suggestedContent, setSuggestedContent] = useState<string | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Update refs array when slides change
@@ -270,6 +272,7 @@ export const SlideManager = ({
     setChatInput('');
     setIsProcessing(true);
     setStreamingMessage("");
+    setSuggestedContent(null);
 
     // Add user message immediately
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
@@ -302,14 +305,7 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
 
       setMessages(prev => [...prev, { role: 'assistant', content: fullMessage }]);
       setStreamingMessage("");
-
-      // Update slide content with AI response
-      const newSlides = [...slides];
-      newSlides[currentSlide] = {
-        ...newSlides[currentSlide],
-        body: fullMessage.trim()
-      };
-      onSlidesChange(newSlides);
+      setSuggestedContent(fullMessage.trim());
       
     } catch (error) {
       console.error('Failed to get response:', error);
@@ -319,6 +315,22 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
       }]);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleApplySuggestion = () => {
+    if (suggestedContent) {
+      const newSlides = [...slides];
+      newSlides[currentSlide] = {
+        ...newSlides[currentSlide],
+        body: suggestedContent
+      };
+      onSlidesChange(newSlides);
+      setSuggestedContent(null);
+      toast({
+        title: "Changes Applied",
+        description: "The suggested content has been applied to the slide.",
+      });
     }
   };
 
@@ -596,6 +608,7 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
           setMessages([]);
           setChatInput('');
           setStreamingMessage('');
+          setSuggestedContent(null);
         }
         setIsChatOpen(open);
       }}>
@@ -637,6 +650,23 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
                 )}
               </div>
             </ScrollArea>
+
+            {suggestedContent && (
+              <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-base text-green-800">Suggested Content</h4>
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleApplySuggestion}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Apply to Slide
+                  </Button>
+                </div>
+                <p className="text-sm text-green-700">{suggestedContent}</p>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Textarea
