@@ -1,5 +1,7 @@
 # 🔥 Flamslides - AI-Powered Presentation Generator
 
+Why waste hours on slides when you can create stunning presentations in seconds? Meet FlamSlides—the open-source, AI-powered alternative to PowerPoint that lets you focus on your message, not formatting. Just add your content, and FlamSlides instantly generates sleek, professional slides online—no templates, no hassle. Whether you're pitching, teaching, or leading a meeting, FlamSlides helps you save time, look sharp, and present at the speed of thought.
+
 Flamslides is a modern web application that leverages OpenAI's GPT-4 and DALL-E 3 models to automatically generate and refine beautiful presentations. Create engaging slides in seconds with the power of AI!
 Developed and maintained by Brijesh Patel & Bhaulik Patel
 
