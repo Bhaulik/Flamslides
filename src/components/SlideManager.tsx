@@ -41,6 +41,8 @@ import {
 import { SlideEditor } from '@/components/SlideEditor';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import OpenAI from 'openai';
+import { getApiKey } from '@/lib/crypto';
+import { logger } from '@/lib/logger';
 
 const CARD_STYLES = "bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-orange-100/20";
 
@@ -67,6 +69,7 @@ interface SlideManagerProps {
   isGenerating?: boolean;
   onGenerateImage?: (description: string) => Promise<string>;
   loadingMessage?: string;
+  onApiKeyRequired?: () => void;
 }
 
 export const SlideManager = ({
@@ -76,7 +79,8 @@ export const SlideManager = ({
   onSlideSelect,
   isGenerating = false,
   onGenerateImage,
-  loadingMessage = ""
+  loadingMessage = "",
+  onApiKeyRequired
 }: SlideManagerProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
@@ -256,9 +260,10 @@ export const SlideManager = ({
   const handleSendMessage = async () => {
     if (!chatInput.trim() || isProcessing) return;
 
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) {
-      console.error('OpenAI API key is missing');
+      logger.info("No API key found, requesting API key");
+      onApiKeyRequired?.();
       return;
     }
 
@@ -309,10 +314,20 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
       
     } catch (error) {
       console.error('Failed to get response:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: "Sorry, I encountered an error. Please try again." 
-      }]);
+      
+      // Handle API key errors
+      if (error.response?.status === 401) {
+        onApiKeyRequired?.();
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: "API key is invalid or expired. Please update your API key to continue." 
+        }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: "Sorry, I encountered an error. Please try again." 
+        }]);
+      }
     } finally {
       setIsProcessing(false);
     }

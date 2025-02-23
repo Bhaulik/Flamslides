@@ -5,7 +5,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ApiKeyDialog } from '@/components/ApiKeyDialog';
+import { getApiKey } from '@/lib/crypto';
 import OpenAI from 'openai';
+import { logger } from '@/lib/logger';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -17,7 +20,8 @@ import {
   MessageSquare,
   Send,
   Loader2,
-  X
+  X,
+  Key
 } from 'lucide-react';
 import {
   Tooltip,
@@ -49,6 +53,8 @@ const PresentationMode = () => {
   const [streamingMessage, setStreamingMessage] = useState("");
   const presentationRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const [isApiKeyDialogOpen, setIsApiKeyDialogOpen] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
   // Scroll chat to bottom when new messages arrive
   useEffect(() => {
@@ -185,16 +191,13 @@ const PresentationMode = () => {
   const handleSendMessage = async () => {
     if (!input.trim() || isProcessing) return;
 
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) {
-      console.error('OpenAI API key is missing');
+      logger.info("No API key found, showing dialog");
+      setPendingMessage(input);
+      setIsApiKeyDialogOpen(true);
       return;
     }
-
-    const openai = new OpenAI({
-      apiKey,
-      dangerouslyAllowBrowser: true
-    });
 
     const currentSlide = slides[currentIndex];
     const userMessage = input;
@@ -206,6 +209,11 @@ const PresentationMode = () => {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 
     try {
+      const openai = new OpenAI({
+        apiKey,
+        dangerouslyAllowBrowser: true
+      });
+
       const stream = await openai.chat.completions.create({
         model: "gpt-4-turbo-preview",
         messages: [
@@ -234,11 +242,22 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
       setMessages(prev => [...prev, { role: 'assistant', content: fullMessage }]);
       setStreamingMessage("");
     } catch (error) {
-      console.error('Failed to get response:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: "Sorry, I encountered an error. Please try again." 
-      }]);
+      logger.error('Failed to get response:', error);
+      
+      // Handle API key errors
+      if (error.response?.status === 401) {
+        setPendingMessage(userMessage);
+        setIsApiKeyDialogOpen(true);
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: "API key is invalid or expired. Please update your API key to continue." 
+        }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: "Sorry, I encountered an error. Please try again." 
+        }]);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -510,6 +529,24 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => setIsApiKeyDialogOpen(true)}
+                  >
+                    <Key className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {getApiKey() ? "Update API Key" : "Enter API Key"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
@@ -532,6 +569,21 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
           <p className="text-sm text-white/80 leading-relaxed">{slides[currentIndex].notes}</p>
         </div>
       )}
+
+      {/* API Key Dialog */}
+      <ApiKeyDialog
+        open={isApiKeyDialogOpen}
+        onOpenChange={setIsApiKeyDialogOpen}
+        onSuccess={async () => {
+          // If there's a pending message, retry sending it
+          if (pendingMessage) {
+            const message = pendingMessage;
+            setPendingMessage(null);
+            setInput(message);
+            await handleSendMessage();
+          }
+        }}
+      />
     </div>
   );
 };

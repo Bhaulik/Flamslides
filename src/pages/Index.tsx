@@ -4,7 +4,7 @@ import type { Slide } from "@/types/slide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Flame, Loader2, Play, QrCode, Presentation, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
+import { Flame, Loader2, Play, QrCode, Presentation, ChevronLeft, ChevronRight, FileDown, Key } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
@@ -28,6 +28,12 @@ import { cn } from "@/lib/utils";
 import { SlideManager } from "@/components/SlideManager";
 import { SlideEditor } from "@/components/SlideEditor";
 import { exportToPowerPoint } from "@/lib/export";
+import { ApiKeyDialog } from '@/components/ApiKeyDialog';
+import { getApiKey, removeApiKey } from '@/lib/crypto';
+
+const GRADIENT_TEXT = "bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent";
+const CARD_STYLES = "bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-orange-100/20";
+const INPUT_STYLES = "bg-white/80 border-orange-100/30 focus:border-orange-500/30 focus:ring-orange-500/20";
 
 const sampleSlides: Slide[] = [
   {
@@ -120,74 +126,6 @@ Example theme:
   }
 }`;
 
-const generateImage = async (prompt: string): Promise<string> => {
-  try {
-    logger.info("Starting DALL-E image generation", { prompt });
-
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error("OpenAI API key is missing");
-    }
-
-    // First, generate the image with DALL-E
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: `Professional presentation visual: ${prompt}. Style: Modern, minimalist, professional. The image should be clean, elegant, and suitable for a professional presentation.`,
-        n: 1,
-        size: "1792x1024",
-        quality: "standard",
-        style: "natural",
-        response_format: "b64_json" // Get base64 directly
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      logger.error("DALL-E image generation failed", {
-        status: response.status,
-        error: error
-      });
-      throw new Error(error.error?.message || error.error || 'Failed to generate image');
-    }
-
-    const data = await response.json();
-    logger.debug("DALL-E image generated successfully", { data });
-
-    if (!data.data?.[0]?.b64_json) {
-      throw new Error("No image data in DALL-E response");
-    }
-
-    // Return the base64 data directly
-    return `data:image/png;base64,${data.data[0].b64_json}`;
-
-  } catch (error) {
-    logger.error("Image generation failed", { error });
-    
-    // Return a fallback image URL from Unsplash based on the prompt theme
-    const fallbackImages = [
-      "https://images.unsplash.com/photo-1516383740770-fbcc5ccbece0",
-      "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
-      "https://images.unsplash.com/photo-1552664730-d307ca884978",
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
-      "https://images.unsplash.com/photo-1557804506-669a67965ba0"
-    ];
-    
-    // Use a consistent but pseudo-random selection based on the prompt
-    const index = Math.abs(prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % fallbackImages.length;
-    return fallbackImages[index];
-  }
-};
-
-const GRADIENT_TEXT = "bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent";
-const CARD_STYLES = "bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-orange-100/20";
-const INPUT_STYLES = "bg-white/80 border-orange-100/30 focus:border-orange-500/30 focus:ring-orange-500/20";
-
 const Index = () => {
   const [slides, setSlides] = useState<Slide[]>(sampleSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -203,26 +141,23 @@ const Index = () => {
   const [loadingMessage, setLoadingMessage] = useState("");
   const { toast } = useToast();
   const [presentationId, setPresentationId] = useState<string | null>(null);
+  const [isApiKeyDialogOpen, setIsApiKeyDialogOpen] = useState(false);
+  const [pendingImagePrompt, setPendingImagePrompt] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     logger.info("Starting slide generation", { formData });
+    
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      logger.info("No API key found, showing dialog");
+      setIsApiKeyDialogOpen(true);
+      return;
+    }
+
     setIsGenerating(true);
     setCurrentStep(2);
     setLoadingMessage("Initializing slide generation...");
-
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-
-    if (!apiKey) {
-      logger.error("API key missing");
-      toast({
-        title: "Configuration Error",
-        description: "API key is not configured. Please check your environment variables.",
-        variant: "destructive",
-      });
-      setIsGenerating(false);
-      return;
-    }
 
     try {
       logger.info("Validating input data");
@@ -502,17 +437,110 @@ Return the presentation in JSON format as specified.`
     }
   };
 
+  const generateImage = async (prompt: string): Promise<string> => {
+    try {
+      logger.info("Starting DALL-E image generation", { prompt });
+
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        setPendingImagePrompt(prompt);
+        setIsApiKeyDialogOpen(true);
+        throw new Error("Please enter your OpenAI API key to generate images");
+      }
+
+      // First, generate the image with DALL-E
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: `Professional presentation visual: ${prompt}. Style: Modern, minimalist, professional. The image should be clean, elegant, and suitable for a professional presentation.`,
+          n: 1,
+          size: "1792x1024",
+          quality: "standard",
+          style: "natural",
+          response_format: "b64_json" // Get base64 directly
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        logger.error("DALL-E image generation failed", {
+          status: response.status,
+          error: error
+        });
+        
+        if (response.status === 401) {
+          // Invalid API key
+          removeApiKey();
+          setPendingImagePrompt(prompt);
+          setIsApiKeyDialogOpen(true);
+          throw new Error("Invalid API key. Please enter a valid OpenAI API key.");
+        }
+        
+        throw new Error(error.error?.message || error.error || 'Failed to generate image');
+      }
+
+      const data = await response.json();
+      logger.debug("DALL-E image generated successfully", { data });
+
+      if (!data.data?.[0]?.b64_json) {
+        throw new Error("No image data in DALL-E response");
+      }
+
+      // Return the base64 data directly
+      return `data:image/png;base64,${data.data[0].b64_json}`;
+
+    } catch (error) {
+      logger.error("Image generation failed", { error });
+      
+      // If it's not an API key error, use fallback images
+      if (!error.message.includes("API key")) {
+        // Return a fallback image URL from Unsplash based on the prompt theme
+        const fallbackImages = [
+          "https://images.unsplash.com/photo-1516383740770-fbcc5ccbece0",
+          "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
+          "https://images.unsplash.com/photo-1552664730-d307ca884978",
+          "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
+          "https://images.unsplash.com/photo-1557804506-669a67965ba0"
+        ];
+        
+        // Use a consistent but pseudo-random selection based on the prompt
+        const index = Math.abs(prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % fallbackImages.length;
+        return fallbackImages[index];
+      }
+      throw error;
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col gap-8 bg-gradient-to-br from-orange-50 to-red-50 p-8">
       {/* Title Area */}
       <div className={cn("w-full text-center py-12 relative", CARD_STYLES)}>
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <Flame className="h-10 w-10 text-orange-500" />
-          <h1 className={cn("text-5xl font-bold", GRADIENT_TEXT)}>
-            FlamSlides
-          </h1>
+        <div className="flex items-center justify-between px-8">
+          <div className="flex-1" /> {/* Spacer */}
+          <div className="flex items-center justify-center gap-4">
+            <Flame className="h-10 w-10 text-orange-500" />
+            <h1 className={cn("text-5xl font-bold", GRADIENT_TEXT)}>
+              FlamSlides
+            </h1>
+          </div>
+          <div className="flex-1 flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsApiKeyDialogOpen(true)}
+              className="border-orange-200 text-orange-700 hover:bg-orange-50"
+            >
+              <Key className="h-4 w-4 mr-2" />
+              {getApiKey() ? "Update API Key" : "Enter API Key"}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center justify-center gap-2 text-lg text-gray-600">
+        <div className="flex items-center justify-center gap-2 text-lg text-gray-600 mt-4">
           <p>Open-source AI powered Power Point alternative</p>
           <a
             href="https://github.com/bhaulik/Flamslides"
@@ -766,6 +794,7 @@ Return the presentation in JSON format as specified.`
                   onSlideSelect={setCurrentSlide}
                   isGenerating={isGenerating}
                   loadingMessage={loadingMessage}
+                  onApiKeyRequired={() => setIsApiKeyDialogOpen(true)}
                   onGenerateImage={async (description) => {
                     setLoadingMessage(`Generating image...`);
                     setIsGenerating(true);
@@ -846,6 +875,35 @@ Return the presentation in JSON format as specified.`
           </a>
         </p>
       </div>
+
+      <ApiKeyDialog
+        open={isApiKeyDialogOpen}
+        onOpenChange={setIsApiKeyDialogOpen}
+        onSuccess={async () => {
+          // If there's a pending image generation, retry it
+          if (pendingImagePrompt) {
+            const prompt = pendingImagePrompt;
+            setPendingImagePrompt(null);
+            try {
+              const newImageUrl = await generateImage(prompt);
+              // Update the current slide with the new image
+              if (currentSlide !== undefined) {
+                const newSlides = [...slides];
+                newSlides[currentSlide] = {
+                  ...newSlides[currentSlide],
+                  imageUrl: newImageUrl
+                };
+                setSlides(newSlides);
+              }
+            } catch (error) {
+              console.error('Failed to generate image after API key update:', error);
+            }
+          } else {
+            // Regular form submission
+            handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+          }
+        }}
+      />
     </div>
   );
 };
