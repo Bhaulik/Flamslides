@@ -898,10 +898,12 @@ Return the presentation in JSON format as specified.`
             } catch (error) {
               console.error('Failed to generate image after API key update:', error);
             }
-          } else {
-            // Regular form submission
-            handleSubmit({ preventDefault: () => {} } as React.FormEvent);
           }
+          // Show success toast to inform user they can now generate slides
+          toast({
+            title: "API Key Saved",
+            description: "You can now generate presentations by filling out the form and clicking 'Generate Slideshow'.",
+          });
         }}
       />
     </div>
