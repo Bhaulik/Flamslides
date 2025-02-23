@@ -70,9 +70,40 @@ Developed and maintained by Brijesh Patel & Bhaulik Patel
 
 ## 🔒 Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_OPENAI_API_KEY` | Your OpenAI API key with access to GPT-4 and DALL-E 3 |
+There are two ways to provide your OpenAI API key:
+
+1. **Development/Self-hosted**: Using `.env` file
+   ```env
+   VITE_OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+2. **Browser Storage** (Recommended for users):
+   - Enter your API key directly in the application
+   - Key is stored securely in your browser's localStorage
+   - ⚠️ Note: We never store or transmit your API key to any server
+   - Key is only used for direct communication between your browser and OpenAI
+
+### Security Notes
+- Your API key is stored locally on your device only
+- Uses browser's localStorage with encryption
+- Direct browser-to-OpenAI communication
+- No server storage or transmission of keys
+- Clear browser data to remove stored key
+
+### API Key Management
+```typescript
+// Example implementation
+const storeApiKey = (key: string) => {
+  // Encrypt before storing
+  const encryptedKey = encryptKey(key);
+  localStorage.setItem('openai_api_key', encryptedKey);
+};
+
+const getApiKey = () => {
+  const encryptedKey = localStorage.getItem('openai_api_key');
+  return encryptedKey ? decryptKey(encryptedKey) : null;
+};
+```
 
 ## 🤝 Contributing
 
@@ -132,6 +163,12 @@ This project stands on the shoulders of giants. We're grateful to these amazing 
 - [Zod](https://github.com/colinhacks/zod) - TypeScript-first schema validation
 
 ## 🚀 Future Improvements
+
+### API Key Management Enhancement
+- Add end-to-end encryption for API key storage
+- Implement secure key rotation
+- Add option to use temporary keys
+- Provide usage analytics and limits
 
 ### Server-Side Storage Enhancement
 Currently, presentations are stored in the browser's localStorage, which has limitations:
