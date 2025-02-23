@@ -292,8 +292,8 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
     >
       {/* Current Slide */}
       <div className={cn(
-        "h-full flex items-center justify-center p-8",
-        isChatOpen && "mr-[400px]",
+        "h-full flex items-center justify-center p-4 md:p-8",
+        isChatOpen ? "md:mr-[400px]" : "",
         SLIDE_TRANSITION
       )}>
         <div className={cn(
@@ -314,17 +314,17 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
               />
             </div>
           )}
-          <div className="relative z-10 h-full flex flex-col items-center justify-center p-16 text-center">
+          <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 md:p-16 text-center">
             <h2 className={cn(
-              "font-bold mb-12 tracking-tight bg-gradient-to-r from-gray-900 to-gray-800 bg-clip-text text-transparent",
-              isFullscreen ? "text-7xl" : "text-6xl",
+              "font-bold mb-6 md:mb-12 tracking-tight bg-gradient-to-r from-gray-900 to-gray-800 bg-clip-text text-transparent",
+              isFullscreen ? "text-4xl md:text-7xl" : "text-3xl md:text-6xl",
               SLIDE_TRANSITION
             )}>
               {slides[currentIndex]?.title}
             </h2>
             <p className={cn(
               "text-gray-700 leading-relaxed max-w-4xl",
-              isFullscreen ? "text-3xl" : "text-2xl",
+              isFullscreen ? "text-xl md:text-3xl" : "text-lg md:text-2xl",
               SLIDE_TRANSITION
             )}>
               {slides[currentIndex]?.body}
@@ -333,13 +333,15 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
         </div>
       </div>
 
-      {/* Research Chat Sidebar */}
+      {/* Research Chat Sidebar - Mobile Bottom Sheet, Desktop Sidebar */}
       <div className={cn(
-        "fixed top-0 right-0 h-full w-[400px] bg-black/30 backdrop-blur-2xl border-l border-white/10 transform transition-transform duration-500 ease-in-out shadow-2xl",
-        !isChatOpen && "translate-x-full"
+        "fixed md:right-0 transition-transform duration-500 ease-in-out shadow-2xl",
+        "md:h-full md:w-[400px] md:bg-black/30 md:backdrop-blur-2xl md:border-l md:border-white/10",
+        "h-[80vh] w-full bottom-0 left-0 bg-black/90 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl",
+        !isChatOpen && "translate-y-full md:translate-y-0 md:translate-x-full"
       )}>
-        <div className="h-full flex flex-col p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="h-full flex flex-col p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
             <div className="flex items-center gap-3">
               <MessageSquare className="h-5 w-5 text-orange-400" />
               <h3 className="text-lg font-semibold text-white">Research Assistant</h3>
@@ -382,7 +384,7 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
             </div>
           </ScrollArea>
 
-          <div className="mt-6">
+          <div className="mt-4 md:mt-6">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -417,17 +419,19 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
       {/* Controls */}
       <div
         className={cn(
-          "fixed bottom-8 left-1/2 -translate-x-1/2 transition-all duration-500",
-          isChatOpen ? "right-[400px]" : "right-0",
+          "fixed transition-all duration-500",
+          "left-0 right-0 bottom-0 md:left-1/2 md:bottom-8 md:-translate-x-1/2",
+          isChatOpen ? "md:right-[400px]" : "",
           !isControlsVisible && "translate-y-full opacity-0"
         )}
       >
         <div className={cn(
-          "max-w-4xl mx-auto flex items-center justify-between rounded-2xl p-4",
+          "flex items-center justify-between p-4",
+          "md:max-w-4xl md:mx-auto md:rounded-2xl",
           BLUR_BACKDROP,
-          "border border-white/10 shadow-xl"
+          "border-t md:border border-white/10 shadow-xl"
         )}>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -438,7 +442,7 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
                     onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                     disabled={currentIndex === 0}
                   >
-                    <ChevronLeft className="h-6 w-6" />
+                    <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Previous Slide</TooltipContent>
@@ -459,7 +463,7 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
                     onClick={() => setCurrentIndex(prev => Math.min(slides.length - 1, prev + 1))}
                     disabled={currentIndex === slides.length - 1}
                   >
-                    <ChevronRight className="h-6 w-6" />
+                    <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Next Slide</TooltipContent>
@@ -467,7 +471,7 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
             </TooltipProvider>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -551,18 +555,19 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
         </div>
       </div>
 
-      {/* Presenter Notes */}
+      {/* Presenter Notes - Hide on mobile when chat is open */}
       {slides[currentIndex].notes && (
         <div className={cn(
-          "fixed left-8 max-w-2xl mx-auto rounded-2xl",
+          "fixed mx-auto rounded-2xl",
           BLUR_BACKDROP,
-          "border border-white/10 shadow-xl p-6",
-          isChatOpen ? "right-[416px]" : "right-8",
+          "border border-white/10 shadow-xl p-4 md:p-6",
+          "left-4 right-4 md:left-8",
+          isChatOpen ? "md:right-[416px] hidden md:block" : "md:right-8",
           isFullscreen ? "bottom-32" : "bottom-28",
           !isControlsVisible && "opacity-0 translate-y-full",
           CONTROL_TRANSITION
         )}>
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-2 md:mb-3">
             <Presentation className="h-5 w-5 text-orange-400" />
             <span className="font-medium text-white">Presenter Notes</span>
           </div>
@@ -575,7 +580,6 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
         open={isApiKeyDialogOpen}
         onOpenChange={setIsApiKeyDialogOpen}
         onSuccess={async () => {
-          // If there's a pending message, retry sending it
           if (pendingMessage) {
             const message = pendingMessage;
             setPendingMessage(null);

@@ -517,18 +517,18 @@ Return the presentation in JSON format as specified.`
   };
 
   return (
-    <div className="min-h-screen flex flex-col gap-8 bg-gradient-to-br from-orange-50 to-red-50 p-8">
+    <div className="min-h-screen flex flex-col gap-4 md:gap-8 bg-gradient-to-br from-orange-50 to-red-50 p-4 md:p-8">
       {/* Title Area */}
-      <div className={cn("w-full text-center py-12 relative", CARD_STYLES)}>
-        <div className="flex items-center justify-between px-8">
-          <div className="flex-1" /> {/* Spacer */}
-          <div className="flex items-center justify-center gap-4">
-            <Flame className="h-10 w-10 text-orange-500" />
-            <h1 className={cn("text-5xl font-bold", GRADIENT_TEXT)}>
+      <div className={cn("w-full text-center py-6 md:py-12 relative", CARD_STYLES)}>
+        <div className="flex flex-col md:flex-row items-center justify-between px-4 md:px-8 gap-4">
+          <div className="flex-1 hidden md:block" /> {/* Spacer - hidden on mobile */}
+          <div className="flex items-center justify-center gap-3 md:gap-4">
+            <Flame className="h-8 w-8 md:h-10 md:w-10 text-orange-500" />
+            <h1 className={cn("text-3xl md:text-5xl font-bold", GRADIENT_TEXT)}>
               FlamSlides
             </h1>
           </div>
-          <div className="flex-1 flex justify-end">
+          <div className="flex-1 flex justify-center md:justify-end">
             <Button
               variant="outline"
               size="sm"
@@ -540,8 +540,8 @@ Return the presentation in JSON format as specified.`
             </Button>
           </div>
         </div>
-        <div className="flex items-center justify-center gap-2 text-lg text-gray-600 mt-4">
-          <p>Open-source AI powered Power Point alternative</p>
+        <div className="flex items-center justify-center gap-2 text-base md:text-lg text-gray-600 mt-4">
+          <p className="text-sm md:text-base">Open-source AI powered Power Point alternative</p>
           <a
             href="https://github.com/bhaulik/Flamslides"
             target="_blank"
@@ -550,7 +550,7 @@ Return the presentation in JSON format as specified.`
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-6 h-6"
+              className="w-5 h-5 md:w-6 md:h-6"
               fill="currentColor"
             >
               <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -559,9 +559,9 @@ Return the presentation in JSON format as specified.`
         </div>
       </div>
 
-      <div className="w-full max-w-6xl mx-auto grid grid-cols-[1fr_300px] gap-8">
+      <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_300px] gap-4 md:gap-8">
         {/* Input Form */}
-        <div className={cn("p-8", CARD_STYLES)}>
+        <div className={cn("p-4 md:p-8", CARD_STYLES)}>
           <h2 className={cn("text-3xl font-bold mb-6 text-center", GRADIENT_TEXT)}>Generate Slideshow</h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -744,16 +744,16 @@ Return the presentation in JSON format as specified.`
       <div className="w-full max-w-[1600px] mx-auto">
         {slides.length > 0 && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
               {/* Left Column - Slideshow */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-2xl font-bold">Preview</h2>
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-2 gap-2">
+                  <h2 className="text-xl md:text-2xl font-bold">Preview</h2>
+                  <div className="flex items-center gap-2 w-full md:w-auto">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                      className="flex-1 md:flex-none border-orange-200 text-orange-700 hover:bg-orange-50"
                       onClick={handleExportPPT}
                       disabled={isGenerating}
                     >
@@ -766,7 +766,7 @@ Return the presentation in JSON format as specified.`
                     </Button>
                     <Button
                       size="sm"
-                      className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg"
+                      className="flex-1 md:flex-none bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg"
                       onClick={handleStartPresentation}
                     >
                       <Play className="w-4 w-4 mr-2" />
@@ -786,7 +786,7 @@ Return the presentation in JSON format as specified.`
               </div>
 
               {/* Right Column - Slide Manager & Chat */}
-              <div className="space-y-8">
+              <div className="space-y-4 md:space-y-8">
                 <SlideManager
                   slides={slides}
                   onSlidesChange={setSlides}
@@ -853,7 +853,7 @@ Return the presentation in JSON format as specified.`
       </div>
 
       {/* Footer */}
-      <div className="mt-16 pb-8 text-center text-sm text-gray-500">
+      <div className="mt-8 md:mt-16 pb-4 md:pb-8 text-center text-xs md:text-sm text-gray-500">
         <p>
           Maintained and developed by{' '}
           <a 
