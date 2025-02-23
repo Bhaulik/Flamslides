@@ -286,62 +286,203 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
     <div 
       ref={presentationRef}
       className={cn(
-        "min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden",
+        "min-h-screen bg-gradient-to-br from-gray-900 to-black",
+        "flex flex-col md:flex-row",
         isFullscreen && "h-screen w-screen"
       )}
     >
-      {/* Current Slide */}
+      {/* Main Content Area */}
       <div className={cn(
-        "h-full flex items-center justify-center p-4 md:p-8",
-        isChatOpen ? "md:mr-[400px]" : "",
-        SLIDE_TRANSITION
+        "relative flex-1 flex flex-col",
+        "transition-[margin] duration-500 ease-in-out",
+        isChatOpen && !isFullscreen && "md:mr-[400px]"
       )}>
+        {/* Slide Container */}
         <div className={cn(
-          "w-full aspect-[16/9] bg-white relative rounded-2xl overflow-hidden shadow-2xl",
-          isFullscreen ? "max-h-screen" : "max-w-7xl",
-          SLIDE_TRANSITION
+          "relative flex-1 flex items-center justify-center",
+          isFullscreen ? "p-0" : "p-2 md:p-8"
         )}>
-          {slides[currentIndex]?.imageUrl && (
-            <div className="absolute inset-0">
-              <img
-                src={slides[currentIndex].imageUrl}
-                alt=""
-                className="w-full h-full object-cover opacity-15 transform scale-105 transition-transform duration-1000"
-                onError={(e) => {
-                  console.error('Image failed to load:', e);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+          <div className={cn(
+            "w-full flex items-center justify-center",
+            isFullscreen ? "h-screen" : "h-[calc(100vh-6rem)] md:h-full"
+          )}>
+            <div className={cn(
+              "bg-white relative rounded-xl md:rounded-2xl overflow-hidden shadow-2xl",
+              isFullscreen 
+                ? "w-screen h-screen rounded-none" 
+                : [
+                    "w-full",
+                    "aspect-[16/9]",
+                    "max-h-[calc(100vh-8rem)]",
+                    "md:max-w-[95%]"
+                  ],
+              SLIDE_TRANSITION
+            )}>
+              {slides[currentIndex]?.imageUrl && (
+                <div className="absolute inset-0">
+                  <img
+                    src={slides[currentIndex].imageUrl}
+                    alt=""
+                    className="w-full h-full object-cover opacity-15 transform scale-105 transition-transform duration-1000"
+                    onError={(e) => {
+                      console.error('Image failed to load:', e);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <div className={cn(
+                "relative z-10 h-full flex flex-col items-center justify-center text-center",
+                isFullscreen ? "p-8 md:p-24" : "p-3 md:p-16"
+              )}>
+                <h2 className={cn(
+                  "font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-800 bg-clip-text text-transparent",
+                  isFullscreen 
+                    ? "text-4xl md:text-8xl mb-8" 
+                    : "text-xl md:text-6xl mb-3 md:mb-12",
+                  SLIDE_TRANSITION
+                )}>
+                  {slides[currentIndex]?.title}
+                </h2>
+                <p className={cn(
+                  "text-gray-700 leading-relaxed max-w-4xl",
+                  isFullscreen 
+                    ? "text-xl md:text-4xl" 
+                    : "text-sm md:text-2xl",
+                  SLIDE_TRANSITION
+                )}>
+                  {slides[currentIndex]?.body}
+                </p>
+              </div>
             </div>
-          )}
-          <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 md:p-16 text-center">
-            <h2 className={cn(
-              "font-bold mb-6 md:mb-12 tracking-tight bg-gradient-to-r from-gray-900 to-gray-800 bg-clip-text text-transparent",
-              isFullscreen ? "text-4xl md:text-7xl" : "text-3xl md:text-6xl",
-              SLIDE_TRANSITION
-            )}>
-              {slides[currentIndex]?.title}
-            </h2>
-            <p className={cn(
-              "text-gray-700 leading-relaxed max-w-4xl",
-              isFullscreen ? "text-xl md:text-3xl" : "text-lg md:text-2xl",
-              SLIDE_TRANSITION
-            )}>
-              {slides[currentIndex]?.body}
-            </p>
           </div>
         </div>
+
+        {/* Controls */}
+        <div className={cn(
+          "fixed z-40 left-0 right-0 bottom-0",
+          "transition-all duration-500 ease-in-out",
+          !isControlsVisible && "translate-y-full opacity-0"
+        )}>
+          <div className={cn(
+            "mx-auto",
+            BLUR_BACKDROP,
+            "border-t md:border border-white/10 shadow-xl",
+            "md:max-w-3xl md:mx-auto md:mb-8 md:rounded-2xl",
+            "p-1 md:p-4" // Reduced padding on mobile
+          )}>
+            <div className="flex items-center justify-between p-2 md:p-4">
+              <div className="flex items-center gap-1 md:gap-6">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 md:h-10 md:w-10"
+                  onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                  disabled={currentIndex === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
+                </Button>
+
+                <span className="text-xs md:text-sm font-medium text-white/70 min-w-[3rem] text-center">
+                  {currentIndex + 1} / {slides.length}
+                </span>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 md:h-10 md:w-10"
+                  onClick={() => setCurrentIndex(prev => Math.min(slides.length - 1, prev + 1))}
+                  disabled={currentIndex === slides.length - 1}
+                >
+                  <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-1 md:gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 md:h-10 md:w-10"
+                  onClick={toggleFullscreen}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" />
+                  )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 md:h-10 md:w-10"
+                  onClick={() => setIsControlsVisible(prev => !prev)}
+                >
+                  {isControlsVisible ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 md:h-10 md:w-10"
+                  onClick={() => setIsChatOpen(prev => !prev)}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8 md:h-10 md:w-10"
+                  onClick={() => setIsApiKeyDialogOpen(true)}
+                >
+                  <Key className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Presenter Notes */}
+        {slides[currentIndex]?.notes && (
+          <div className={cn(
+            "fixed z-30 mx-auto",
+            BLUR_BACKDROP,
+            "border border-white/10 shadow-xl p-4 md:p-6 rounded-2xl",
+            "left-4 right-4 md:left-8 md:right-8",
+            isFullscreen ? "bottom-32" : "bottom-28",
+            !isControlsVisible && "opacity-0 translate-y-full",
+            CONTROL_TRANSITION
+          )}>
+            <div className="flex items-center gap-3 mb-2 md:mb-3">
+              <Presentation className="h-5 w-5 text-orange-400" />
+              <span className="font-medium text-white">Presenter Notes</span>
+            </div>
+            <p className="text-sm text-white/80 leading-relaxed">{slides[currentIndex].notes}</p>
+          </div>
+        )}
       </div>
 
-      {/* Research Chat Sidebar - Mobile Bottom Sheet, Desktop Sidebar */}
+      {/* Research Chat Sidebar */}
       <div className={cn(
-        "fixed md:right-0 transition-transform duration-500 ease-in-out shadow-2xl",
-        "md:h-full md:w-[400px] md:bg-black/30 md:backdrop-blur-2xl md:border-l md:border-white/10",
-        "h-[80vh] w-full bottom-0 left-0 bg-black/90 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl",
-        !isChatOpen && "translate-y-full md:translate-y-0 md:translate-x-full"
+        "fixed md:relative z-50",
+        // Mobile styles
+        "inset-x-0 bottom-0 h-[85vh]",
+        // Desktop styles
+        "md:h-screen md:w-[400px] md:flex-shrink-0",
+        "flex flex-col",
+        isChatOpen ? "translate-y-0" : "translate-y-full md:translate-x-full",
+        "transition-transform duration-500 ease-in-out",
+        "bg-black/90 backdrop-blur-xl",
+        "border-t md:border-l md:border-t-0 border-white/10",
+        "rounded-t-3xl md:rounded-none"
       )}>
-        <div className="h-full flex flex-col p-4 md:p-6">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
+        <div className="flex-1 flex flex-col h-full p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <MessageSquare className="h-5 w-5 text-orange-400" />
               <h3 className="text-lg font-semibold text-white">Research Assistant</h3>
@@ -356,8 +497,8 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4" ref={chatScrollRef}>
+          <ScrollArea className="flex-1">
+            <div className="space-y-4 pr-4" ref={chatScrollRef}>
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -384,7 +525,7 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
             </div>
           </ScrollArea>
 
-          <div className="mt-4 md:mt-6">
+          <div className="mt-4 pt-4 border-t border-white/10">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -415,165 +556,6 @@ Provide brief, focused responses (max 2-3 sentences) to help enhance the present
           </div>
         </div>
       </div>
-
-      {/* Controls */}
-      <div
-        className={cn(
-          "fixed transition-all duration-500",
-          "left-0 right-0 bottom-0 md:left-1/2 md:bottom-8 md:-translate-x-1/2",
-          isChatOpen ? "md:right-[400px]" : "",
-          !isControlsVisible && "translate-y-full opacity-0"
-        )}
-      >
-        <div className={cn(
-          "flex items-center justify-between p-4",
-          "md:max-w-4xl md:mx-auto md:rounded-2xl",
-          BLUR_BACKDROP,
-          "border-t md:border border-white/10 shadow-xl"
-        )}>
-          <div className="flex items-center gap-4 md:gap-6">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white/70 hover:text-white hover:bg-white/10"
-                    onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                    disabled={currentIndex === 0}
-                  >
-                    <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Previous Slide</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <span className="text-sm font-medium text-white/70">
-              {currentIndex + 1} / {slides.length}
-            </span>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white/70 hover:text-white hover:bg-white/10"
-                    onClick={() => setCurrentIndex(prev => Math.min(slides.length - 1, prev + 1))}
-                    disabled={currentIndex === slides.length - 1}
-                  >
-                    <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Next Slide</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white/70 hover:text-white hover:bg-white/10"
-                    onClick={toggleFullscreen}
-                  >
-                    {isFullscreen ? (
-                      <Minimize2 className="h-4 w-4" />
-                    ) : (
-                      <Maximize2 className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white/70 hover:text-white hover:bg-white/10"
-                    onClick={() => setIsControlsVisible(prev => !prev)}
-                  >
-                    {isControlsVisible ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isControlsVisible ? "Hide Controls" : "Show Controls"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white/70 hover:text-white hover:bg-white/10"
-                    onClick={() => setIsChatOpen(prev => !prev)}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isChatOpen ? "Close Chat" : "Open Chat"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white/70 hover:text-white hover:bg-white/10"
-                    onClick={() => setIsApiKeyDialogOpen(true)}
-                  >
-                    <Key className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {getApiKey() ? "Update API Key" : "Enter API Key"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </div>
-
-      {/* Presenter Notes - Hide on mobile when chat is open */}
-      {slides[currentIndex].notes && (
-        <div className={cn(
-          "fixed mx-auto rounded-2xl",
-          BLUR_BACKDROP,
-          "border border-white/10 shadow-xl p-4 md:p-6",
-          "left-4 right-4 md:left-8",
-          isChatOpen ? "md:right-[416px] hidden md:block" : "md:right-8",
-          isFullscreen ? "bottom-32" : "bottom-28",
-          !isControlsVisible && "opacity-0 translate-y-full",
-          CONTROL_TRANSITION
-        )}>
-          <div className="flex items-center gap-3 mb-2 md:mb-3">
-            <Presentation className="h-5 w-5 text-orange-400" />
-            <span className="font-medium text-white">Presenter Notes</span>
-          </div>
-          <p className="text-sm text-white/80 leading-relaxed">{slides[currentIndex].notes}</p>
-        </div>
-      )}
 
       {/* API Key Dialog */}
       <ApiKeyDialog

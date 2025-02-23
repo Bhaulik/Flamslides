@@ -898,8 +898,8 @@ Return the presentation in JSON format as specified.`
             } catch (error) {
               console.error('Failed to generate image after API key update:', error);
             }
-          } else {
-            // Regular form submission
+          } else if (formData.topic && formData.description) {
+            // Only submit the form if we have the required fields
             handleSubmit({ preventDefault: () => {} } as React.FormEvent);
           }
         }}

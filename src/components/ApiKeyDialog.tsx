@@ -35,7 +35,8 @@ export function ApiKeyDialog({ open, onOpenChange, onSuccess }: ApiKeyDialogProp
       storeApiKey(apiKey);
       toast({
         title: "API Key Saved",
-        description: "Your API key has been securely stored in your browser.",
+        description: "Your API key has been securely stored. You can now generate presentations and images.",
+        duration: 5000,
       });
       onSuccess();
       onOpenChange(false);
